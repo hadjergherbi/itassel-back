@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Mail\AccuseComplementMail;
+use App\Models\Complement;
+use App\Models\Doleance;
+use App\Models\Historique;
+use App\Models\PieceJointe;
+use App\Models\Statut;
+use App\Services\NotificationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+
+class SuiviComplementController extends Controller
+{
+    /**
+     * POST /api/suivi/repondre-complement
+     * Le demandeur répond à la demande de complément en attente.
+     */
+    public function repondre(Request $request)
+    {
+        $data = $request->validate([
+            'jeton_session' => ['required', 'string'],
+            'message'       => ['required', 'string'],
+            'piece_jointe'  => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ]);
+
+        $idDoleance = Cache::get("suivi:session:{$data['jeton_session']}");
+
+        if (! $idDoleance) {
+            return response()->json(['message' => 'Session expirée ou invalide.'], 401);
+        }
+
+        $doleance = Doleance::findOrFail($idDoleance);
+
+        $complement = Complement::where('id_doleance', $doleance->id_doleance)
+            ->where('etat', 'en_attente')
+            ->latest('date_demande')
+            ->first();
+
+        if (! $complement) {
+            return response()->json([
+                'message' => 'Aucune demande de complément en attente pour ce dossier.',
+            ], 404);
+        }
+
+        if ($complement->piece_exigee && ! $request->hasFile('piece_jointe')) {
+            return response()->json([
+                'errors' => ['piece_jointe' => ['Une pièce jointe est obligatoire pour cette demande.']],
+            ], 422);
+        }
+
+        $evenement = DB::transaction(function () use ($complement, $doleance, $data, $request) {
+            $complement->update([
+                'reponse'      => $data['message'],
+                'date_reponse' => now(),
+                'etat'         => 'recu',
+            ]);
+
+            if ($request->hasFile('piece_jointe')) {
+                $fichier = $request->file('piece_jointe');
+                $chemin = $fichier->store('pieces-jointes/'.$doleance->id_doleance, 'local');
+                $extension = strtolower($fichier->getClientOriginalExtension());
+
+                PieceJointe::create([
+                    'nom_fichier'   => $fichier->getClientOriginalName(),
+                    'type'          => $extension === 'jpeg' ? 'jpg' : $extension,
+                    'taille'        => $fichier->getSize(),
+                    'chemin'        => $chemin,
+                    'origine'       => 'COMPLEMENT',
+                    'id_doleance'   => $doleance->id_doleance,
+                    'id_complement' => $complement->id_complement,
+                ]);
+            }
+
+            // Le dossier repart en traitement : le service doit examiner la réponse.
+            $statutAvant = $doleance->id_statut;
+            $statutEnCours = Statut::where('libelle', 'En cours de traitement')->first();
+            if ($statutEnCours) {
+                $doleance->update(['id_statut' => $statutEnCours->id_statut]);
+            }
+
+            return Historique::create([
+                'date_evenement'    => now(),
+                'type_evenement'    => 'complement_recu',
+                'detail'            => 'Réponse du demandeur au complément demandé.',
+                'visible_demandeur' => true,
+                'id_doleance'       => $doleance->id_doleance,
+                'id_statut_avant'   => $statutAvant,
+                'id_statut_apres'   => $statutEnCours?->id_statut,
+            ]);
+        });
+
+        NotificationService::envoyer(
+            $doleance,
+            'complement_recu',
+            new AccuseComplementMail($doleance),
+            $evenement->id_evenement,
+        );
+
+        return response()->json([
+            'message' => 'Votre réponse a bien été transmise au service concerné.',
+        ]);
+    }
+}
