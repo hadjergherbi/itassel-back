@@ -22,14 +22,16 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement("
-            ALTER TABLE pieces_jointes
-            ADD CONSTRAINT ck_pj_taille CHECK (taille > 0 AND taille <= 5242880),
-            ADD CONSTRAINT ck_pj_origine CHECK (
-                (origine = 'DEPOT_INITIAL' AND id_complement IS NULL) OR
-                (origine = 'COMPLEMENT' AND id_complement IS NOT NULL)
-            )
-        ");
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement("
+                ALTER TABLE pieces_jointes
+                ADD CONSTRAINT ck_pj_taille CHECK (taille > 0 AND taille <= 5242880),
+                ADD CONSTRAINT ck_pj_origine CHECK (
+                    (origine = 'DEPOT_INITIAL' AND id_complement IS NULL) OR
+                    (origine = 'COMPLEMENT' AND id_complement IS NOT NULL)
+                )
+            ");
+        }
     }
 
     public function down(): void

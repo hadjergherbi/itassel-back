@@ -28,7 +28,7 @@ class Historique extends Model
 
     public function utilisateur()
     {
-        return $this->belongsTo(Utilisateur::class, 'id_utilisateur', 'id_utilisateur');
+        return $this->belongsTo(Utilisateur::class, 'id_utilisateur', 'id_utilisateur')->withTrashed();
     }
 
     public function statutAvant()
@@ -39,5 +39,10 @@ class Historique extends Model
     public function statutApres()
     {
         return $this->belongsTo(Statut::class, 'id_statut_apres', 'id_statut');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(NotificationItassel::class, 'id_evenement', 'id_evenement');
     }
 }

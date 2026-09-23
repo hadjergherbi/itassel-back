@@ -129,10 +129,13 @@ class SuiviController extends Controller
             'statut', 'service',
             // Statut après chaque événement, pour l'afficher dans la frise du demandeur.
             'historique' => fn ($q) => $q->where('visible_demandeur', true)
-                ->with('statutApres:id_statut,libelle'),
+                ->where('type_evenement', '!=', 'complement_annule_motif')
+                ->with('statutApres:id_statut,code,libelle,couleur'),
             'complements' => fn ($q) => $q->where('etat', 'en_attente'),
             'reponses',
         ])->findOrFail($idDoleance);
+
+        $doleance->complements->each->makeHidden(['motif_annulation']);
 
         return response()->json($doleance);
     }

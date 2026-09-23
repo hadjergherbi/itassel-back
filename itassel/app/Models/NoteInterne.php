@@ -23,6 +23,6 @@ class NoteInterne extends Model
 
     public function auteur()
     {
-        return $this->belongsTo(Utilisateur::class, 'id_auteur', 'id_utilisateur');
+        return $this->belongsTo(Utilisateur::class, 'id_auteur', 'id_utilisateur')->withTrashed();
     }
 }

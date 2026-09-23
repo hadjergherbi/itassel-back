@@ -22,7 +22,25 @@ class NotificationService
         Mailable $mail,
         ?int $idEvenement = null
     ): bool {
-        $destinataire = $doleance->email;
+        return static::envoyerA($doleance->email, $doleance, $type, $mail, $idEvenement);
+    }
+
+    /**
+     * Envoie un email à un destinataire précis (demandeur ou interne)
+     * et enregistre le résultat. Ne lève jamais d'exception.
+     */
+    public static function envoyerA(
+        string $destinataire,
+        Doleance $doleance,
+        string $type,
+        Mailable $mail,
+        ?int $idEvenement = null
+    ): bool {
+        $destinataire = trim($destinataire);
+
+        if ($destinataire === '') {
+            return false;
+        }
 
         try {
             Mail::to($destinataire)->send($mail);
@@ -40,6 +58,33 @@ class NotificationService
             'date_envoi'        => $transmis ? now() : null,
             'id_doleance'       => $doleance->id_doleance,
             'id_evenement'      => $idEvenement,
+        ]);
+
+        return $transmis;
+    }
+
+    /**
+     * Renvoie un email déjà tracé : met à jour la ligne existante, n'en crée pas une nouvelle.
+     */
+    public static function renvoyer(NotificationItassel $notification, Mailable $mail): bool
+    {
+        $destinataire = trim((string) $notification->destinataire);
+
+        if ($destinataire === '') {
+            return false;
+        }
+
+        try {
+            Mail::to($destinataire)->send($mail);
+            $transmis = true;
+        } catch (\Throwable $e) {
+            Log::error("Échec du renvoi de l'email « {$notification->type_notification} » #{$notification->id_notification} : ".$e->getMessage());
+            $transmis = false;
+        }
+
+        $notification->update([
+            'etat_envoi' => $transmis ? 'transmis' : 'non_transmis',
+            'date_envoi' => $transmis ? now() : null,
         ]);
 
         return $transmis;

@@ -23,10 +23,12 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement("
-            ALTER TABLE notifications_itassel
-            ADD CONSTRAINT ck_not_date CHECK (etat_envoi = 'non_transmis' OR date_envoi IS NOT NULL)
-        ");
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement("
+                ALTER TABLE notifications_itassel
+                ADD CONSTRAINT ck_not_date CHECK (etat_envoi = 'non_transmis' OR date_envoi IS NOT NULL)
+            ");
+        }
     }
 
     public function down(): void

@@ -23,12 +23,13 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Le Super administrateur n'a pas de service (équivalent du CHECK ck_util_role)
-        DB::statement("
-            ALTER TABLE utilisateurs
-            ADD CONSTRAINT ck_util_role
-            CHECK (role = 'admin_service' OR id_service IS NULL)
-        ");
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement("
+                ALTER TABLE utilisateurs
+                ADD CONSTRAINT ck_util_role
+                CHECK (role = 'admin_service' OR id_service IS NULL)
+            ");
+        }
     }
 
     public function down(): void

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\ConfirmationDepotMail;
 use App\Models\Doleance;
 use App\Models\Historique;
 use App\Models\PieceJointe;
+use App\Models\Service;
 use App\Models\Statut;
-use App\Services\NotificationService;
+use App\Services\NotificationDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +35,7 @@ class DoleanceController extends Controller
         ]);
 
         [$doleance, $evenement] = DB::transaction(function () use ($data, $request) {
-            $statutNouvelle = Statut::where('libelle', 'Nouvelle')->firstOrFail();
+            $statutNouvelle = Statut::parCode(Statut::NOUVELLE);
 
             $doleance = Doleance::create([
                 'reference'   => $this->genererReference(),
@@ -76,15 +76,27 @@ class DoleanceController extends Controller
                 'id_statut_apres'   => $statutNouvelle->id_statut,
             ]);
 
+            $nomService = Service::whereKey($doleance->id_service)->value('nom_service') ?? '—';
+            Historique::create([
+                'date_evenement'    => now(),
+                'type_evenement'    => 'affectation',
+                'detail'            => "Affectée au service {$nomService}",
+                'visible_demandeur' => false,
+                'id_doleance'       => $doleance->id_doleance,
+                'id_utilisateur'    => null,
+            ]);
+
             return [$doleance, $evenement];
         });
 
-        // Envoi APRÈS l'enregistrement : pas d'email pour un dépôt annulé.
-        // Un échec d'envoi n'empêche pas le dépôt (il est tracé dans notifications_itassel).
-        NotificationService::envoyer(
-            $doleance,
-            'depot',
-            new ConfirmationDepotMail($doleance),
+        NotificationDispatcher::emettre(
+            'doleance_deposee',
+            $doleance->fresh(['service.responsable', 'responsable', 'statut']),
+            [
+                'titre' => "Nouvelle doléance — {$doleance->reference}",
+                'texte' => "Le dossier {$doleance->reference} a été déposé.",
+            ],
+            null,
             $evenement->id_evenement,
         );
 

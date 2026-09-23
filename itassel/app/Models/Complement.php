@@ -14,13 +14,14 @@ class Complement extends Model
     protected $fillable = [
         'question', 'piece_exigee', 'description_piece', 'reponse',
         'date_demande', 'date_reponse', 'etat', 'motif_annulation',
-        'id_doleance', 'id_auteur',
+        'id_doleance', 'id_auteur', 'id_annule_par', 'date_annulation',
     ];
 
     protected $casts = [
-        'date_demande' => 'datetime',
-        'date_reponse' => 'datetime',
-        'piece_exigee' => 'boolean',
+        'date_demande'     => 'datetime',
+        'date_reponse'     => 'datetime',
+        'date_annulation'  => 'datetime',
+        'piece_exigee'     => 'boolean',
     ];
 
     public function doleance()
@@ -30,11 +31,16 @@ class Complement extends Model
 
     public function auteur()
     {
-        return $this->belongsTo(Utilisateur::class, 'id_auteur', 'id_utilisateur');
+        return $this->belongsTo(Utilisateur::class, 'id_auteur', 'id_utilisateur')->withTrashed();
     }
 
     public function piecesJointes()
     {
         return $this->hasMany(PieceJointe::class, 'id_complement', 'id_complement');
+    }
+
+    public function annulePar()
+    {
+        return $this->belongsTo(Utilisateur::class, 'id_annule_par', 'id_utilisateur')->withTrashed();
     }
 }

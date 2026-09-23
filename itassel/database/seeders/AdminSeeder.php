@@ -9,21 +9,21 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminSeeder extends Seeder
 {
-    // Mot de passe de DÉMONSTRATION : à changer avant toute mise en ligne.
     private const MOT_DE_PASSE_DEMO = 'Itassel2026!';
 
     public function run(): void
     {
         $hash = Hash::make(self::MOT_DE_PASSE_DEMO);
 
-        // Super administrateur (sans service)
-        Utilisateur::updateOrCreate(
-            ['email' => 'nour.belkacem@itassel.dz'],
-            ['nom' => 'Belkacem', 'prenom' => 'Nour', 'mot_de_passe' => $hash,
-             'role' => 'super_admin', 'actif' => true, 'id_service' => null],
-        );
+        $this->enregistrer([
+            'email'        => 'nour.belkacem@itassel.dz',
+            'nom'          => 'Belkacem',
+            'prenom'       => 'Nour',
+            'role'         => 'super_admin',
+            'id_service'   => null,
+            'mot_de_passe' => $hash,
+        ]);
 
-        // Un administrateur par service, désigné responsable du service
         $comptes = [
             'Sport'               => ['amine.kaddour@itassel.dz', 'Kaddour', 'Amine'],
             'Jeunesse'            => ['farid.merabet@itassel.dz', 'Merabet', 'Farid'],
@@ -37,21 +37,43 @@ class AdminSeeder extends Seeder
                 continue;
             }
 
-            $admin = Utilisateur::updateOrCreate(
-                ['email' => $email],
-                ['nom' => $nom, 'prenom' => $prenom, 'mot_de_passe' => $hash,
-                 'role' => 'admin_service', 'actif' => true, 'id_service' => $service->id_service],
-            );
+            $admin = $this->enregistrer([
+                'email'        => $email,
+                'nom'          => $nom,
+                'prenom'       => $prenom,
+                'role'         => 'admin_service',
+                'id_service'   => $service->id_service,
+                'mot_de_passe' => $hash,
+            ]);
 
             $service->update(['id_responsable' => $admin->id_utilisateur]);
         }
 
-        // Anciens comptes de test dont le mot de passe est en clair : on le remplace
-        // par le mot de passe de démonstration chiffré, pour qu'ils puissent se connecter.
         Utilisateur::where('mot_de_passe', 'not like', '$2y$%')
             ->get()
-            ->each(fn ($u) => $u->update(['mot_de_passe' => $hash]));
+            ->each(function (Utilisateur $utilisateur) use ($hash) {
+                $utilisateur->mot_de_passe = $hash;
+                $utilisateur->mot_de_passe_defini_le = $utilisateur->mot_de_passe_defini_le ?? now();
+                $utilisateur->save();
+            });
 
         $this->command?->info('Comptes prêts. Mot de passe de démonstration : '.self::MOT_DE_PASSE_DEMO);
+    }
+
+    private function enregistrer(array $donnees): Utilisateur
+    {
+        $utilisateur = Utilisateur::firstOrNew(['email' => $donnees['email']]);
+        $utilisateur->fill([
+            'nom'        => $donnees['nom'],
+            'prenom'     => $donnees['prenom'],
+            'actif'      => true,
+            'id_service' => $donnees['id_service'],
+        ]);
+        $utilisateur->role = $donnees['role'];
+        $utilisateur->mot_de_passe = $donnees['mot_de_passe'];
+        $utilisateur->mot_de_passe_defini_le = $utilisateur->mot_de_passe_defini_le ?? now();
+        $utilisateur->save();
+
+        return $utilisateur;
     }
 }

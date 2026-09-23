@@ -31,17 +31,31 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Une doléance ne peut pas être son propre dossier initial (équivalent du trigger SQL)
-        DB::unprepared('
-            CREATE TRIGGER trg_doleance_initiale BEFORE UPDATE ON doleances
-            FOR EACH ROW
-            BEGIN
-                IF NEW.id_doleance_initial IS NOT NULL AND NEW.id_doleance_initial = NEW.id_doleance THEN
-                    SIGNAL SQLSTATE \'45000\'
-                    SET MESSAGE_TEXT = \'Une doléance ne peut pas être son propre dossier initial\';
-                END IF;
-            END
-        ');
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            DB::unprepared("
+                CREATE TRIGGER trg_doleance_initiale
+                BEFORE UPDATE ON doleances
+                FOR EACH ROW
+                WHEN NEW.id_doleance_initial IS NOT NULL
+                     AND NEW.id_doleance_initial = NEW.id_doleance
+                BEGIN
+                    SELECT RAISE(ABORT, 'Une doléance ne peut pas être son propre dossier initial');
+                END
+            ");
+        } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+            DB::unprepared('
+                CREATE TRIGGER trg_doleance_initiale BEFORE UPDATE ON doleances
+                FOR EACH ROW
+                BEGIN
+                    IF NEW.id_doleance_initial IS NOT NULL AND NEW.id_doleance_initial = NEW.id_doleance THEN
+                        SIGNAL SQLSTATE \'45000\'
+                        SET MESSAGE_TEXT = \'Une doléance ne peut pas être son propre dossier initial\';
+                    END IF;
+                END
+            ');
+        }
     }
 
     public function down(): void

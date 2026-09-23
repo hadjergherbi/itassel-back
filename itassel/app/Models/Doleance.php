@@ -15,7 +15,7 @@ class Doleance extends Model
         'reference', 'nom', 'prenom', 'email', 'telephone', 'wilaya',
         'objet', 'description', 'date_depot',
         'id_service', 'id_statut', 'id_nature', 'id_qualite',
-        'id_responsable', 'id_doleance_initial',
+        'id_responsable', 'id_doleance_initial', 'organisme_competent',
     ];
 
     protected $casts = ['date_depot' => 'datetime'];
@@ -93,5 +93,36 @@ class Doleance extends Model
     public function codesVerification()
     {
         return $this->hasMany(CodeVerification::class, 'id_doleance', 'id_doleance');
+    }
+
+    public function transitionsAutorisees()
+    {
+        $this->loadMissing(['statut', 'nature']);
+        $famille = $this->nature?->famille ?? 'reclamation';
+
+        return Statut::autorisesDepuis($this->statut?->code)
+            ->filter(function (Statut $statut) use ($famille) {
+                if (! Statut::estIssue($statut->code)) {
+                    return true;
+                }
+
+                $familles = config("itassel.issues.{$statut->code}.familles", ['reclamation', 'demande']);
+
+                return in_array($famille, $familles, true);
+            })
+            ->values();
+    }
+
+    public function complementAExaminer(): bool
+    {
+        return $this->complements()->where('etat', 'recu')->exists();
+    }
+
+    public function emailResponsableInterne(): ?string
+    {
+        $this->loadMissing(['responsable', 'service.responsable']);
+
+        return $this->responsable?->email
+            ?? $this->service?->responsable?->email;
     }
 }

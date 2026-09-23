@@ -25,19 +25,21 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement("
-            ALTER TABLE reaffectations
-            ADD CONSTRAINT ck_rea_traite CHECK (
-                (etat = 'en_attente' AND date_decision IS NULL) OR
-                (etat <> 'en_attente' AND date_decision IS NOT NULL)
-            ),
-            ADD CONSTRAINT ck_rea_decision CHECK (
-                etat NOT IN ('acceptee', 'refusee') OR id_decideur IS NOT NULL
-            ),
-            ADD CONSTRAINT ck_rea_dest CHECK (
-                etat <> 'acceptee' OR id_service_destination IS NOT NULL
-            )
-        ");
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement("
+                ALTER TABLE reaffectations
+                ADD CONSTRAINT ck_rea_traite CHECK (
+                    (etat = 'en_attente' AND date_decision IS NULL) OR
+                    (etat <> 'en_attente' AND date_decision IS NOT NULL)
+                ),
+                ADD CONSTRAINT ck_rea_decision CHECK (
+                    etat NOT IN ('acceptee', 'refusee') OR id_decideur IS NOT NULL
+                ),
+                ADD CONSTRAINT ck_rea_dest CHECK (
+                    etat <> 'acceptee' OR id_service_destination IS NOT NULL
+                )
+            ");
+        }
     }
 
     public function down(): void

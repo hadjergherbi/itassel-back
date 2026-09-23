@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\AccuseComplementMail;
 use App\Models\Complement;
 use App\Models\Doleance;
 use App\Models\Historique;
 use App\Models\PieceJointe;
 use App\Models\Statut;
-use App\Services\NotificationService;
+use App\Services\NotificationDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -78,10 +77,8 @@ class SuiviComplementController extends Controller
 
             // Le dossier repart en traitement : le service doit examiner la réponse.
             $statutAvant = $doleance->id_statut;
-            $statutEnCours = Statut::where('libelle', 'En cours de traitement')->first();
-            if ($statutEnCours) {
-                $doleance->update(['id_statut' => $statutEnCours->id_statut]);
-            }
+            $statutEnCours = Statut::parCode(Statut::EN_COURS);
+            $doleance->update(['id_statut' => $statutEnCours->id_statut]);
 
             return Historique::create([
                 'date_evenement'    => now(),
@@ -94,10 +91,14 @@ class SuiviComplementController extends Controller
             ]);
         });
 
-        NotificationService::envoyer(
-            $doleance,
+        NotificationDispatcher::emettre(
             'complement_recu',
-            new AccuseComplementMail($doleance),
+            $doleance->fresh(['responsable', 'service.responsable']),
+            [
+                'titre' => "Complément reçu — {$doleance->reference}",
+                'texte' => "Le demandeur a répondu à une demande de complément pour le dossier {$doleance->reference}.",
+            ],
+            null,
             $evenement->id_evenement,
         );
 

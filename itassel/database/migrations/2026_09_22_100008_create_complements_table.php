@@ -24,19 +24,21 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement("
-            ALTER TABLE complements
-            ADD CONSTRAINT ck_cmp_reponse CHECK (
-                (reponse IS NULL AND date_reponse IS NULL) OR
-                (reponse IS NOT NULL AND date_reponse IS NOT NULL)
-            ),
-            ADD CONSTRAINT ck_cmp_etat CHECK (
-                etat IN ('en_attente', 'annule') OR reponse IS NOT NULL
-            ),
-            ADD CONSTRAINT ck_cmp_motif CHECK (
-                etat <> 'annule' OR motif_annulation IS NOT NULL
-            )
-        ");
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement("
+                ALTER TABLE complements
+                ADD CONSTRAINT ck_cmp_reponse CHECK (
+                    (reponse IS NULL AND date_reponse IS NULL) OR
+                    (reponse IS NOT NULL AND date_reponse IS NOT NULL)
+                ),
+                ADD CONSTRAINT ck_cmp_etat CHECK (
+                    etat IN ('en_attente', 'annule') OR reponse IS NOT NULL
+                ),
+                ADD CONSTRAINT ck_cmp_motif CHECK (
+                    etat <> 'annule' OR motif_annulation IS NOT NULL
+                )
+            ");
+        }
     }
 
     public function down(): void

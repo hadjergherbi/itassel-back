@@ -13,13 +13,14 @@ class Journal extends Model
     protected $primaryKey = 'id_journal';
 
     protected $fillable = [
-        'date_action', 'compte', 'action', 'detail', 'adresse_ip', 'resultat', 'id_utilisateur',
+        'date_action', 'compte', 'action', 'categorie', 'detail', 'adresse_ip',
+        'resultat', 'id_utilisateur', 'cible_type', 'cible_id',
     ];
 
     protected $casts = ['date_action' => 'datetime'];
 
     public function utilisateur()
     {
-        return $this->belongsTo(Utilisateur::class, 'id_utilisateur', 'id_utilisateur');
+        return $this->belongsTo(Utilisateur::class, 'id_utilisateur', 'id_utilisateur')->withTrashed();
     }
 }

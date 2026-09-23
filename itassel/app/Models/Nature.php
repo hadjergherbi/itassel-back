@@ -11,7 +11,7 @@ class Nature extends Model
 
     protected $primaryKey = 'id_nature';
 
-    protected $fillable = ['libelle'];
+    protected $fillable = ['libelle', 'famille'];
 
     public function doleances()
     {
