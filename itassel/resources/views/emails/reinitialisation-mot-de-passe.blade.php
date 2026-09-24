@@ -14,4 +14,13 @@
       Choisir un nouveau mot de passe
     </a>
   </p>
+
+  <p style="word-break:break-all;font-size:13px;color:#4B5563;">
+    {{ $lien }}
+  </p>
+
+  <p>
+    Si vous n'êtes pas à l'origine de cette demande, ignorez ce message :
+    votre mot de passe actuel reste inchangé.
+  </p>
 @endsection

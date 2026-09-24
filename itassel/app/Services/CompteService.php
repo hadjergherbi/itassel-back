@@ -5,16 +5,22 @@ namespace App\Services;
 use App\Exceptions\ConflitMetier;
 use App\Mail\InvitationCompteMail;
 use App\Mail\ReinitialisationMotDePasseMail;
+use App\Models\JetonMotDePasse;
 use App\Models\Utilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 class CompteService
 {
+    /** @var array<string, true> */
+    private static array $envoisAfterResponse = [];
+
     public static function creer(array $donnees, Utilisateur $acteur, Request $request): Utilisateur
     {
         $utilisateur = new Utilisateur();
@@ -71,13 +77,69 @@ class CompteService
         );
     }
 
+    public static function envoyerLienReinitialisation(Utilisateur $utilisateur, Request $request): void
+    {
+        $jetonClair = JetonService::emettre($utilisateur, 'reinitialisation', null);
+
+        JournalService::action(
+            $request,
+            null,
+            'reinitialisation_mot_de_passe',
+            'Demande en libre-service',
+            $utilisateur,
+            'succes',
+        );
+
+        $email = $utilisateur->email;
+        $mail = new ReinitialisationMotDePasseMail($utilisateur, $jetonClair);
+        $cleEnvoi = $utilisateur->id_utilisateur.':'.hash('sha256', $mail->lien);
+
+        dispatch(function () use ($email, $mail, $utilisateur, $cleEnvoi) {
+            if (isset(self::$envoisAfterResponse[$cleEnvoi])) {
+                return;
+            }
+            self::$envoisAfterResponse[$cleEnvoi] = true;
+
+            try {
+                Mail::to($email)->send($mail);
+            } catch (\Throwable $e) {
+                Log::error('Échec envoi mail réinitialisation', [
+                    'id_utilisateur' => $utilisateur->id_utilisateur,
+                    'erreur'         => $e->getMessage(),
+                ]);
+            }
+        })->afterResponse();
+    }
+
     public static function motDePasseOublie(string $email, Request $request): void
     {
-        $utilisateur = Utilisateur::where('email', $email)->first();
+        $email = mb_strtolower(trim($email));
+        $cle = 'mdp-oublie:'.sha1($email);
 
-        if ($utilisateur && $utilisateur->actif && $utilisateur->mot_de_passe_defini_le !== null) {
-            static::reinitialiserMotDePasse($utilisateur, null, $request);
+        if (RateLimiter::tooManyAttempts($cle, 3)) {
+            return;
         }
+
+        RateLimiter::hit($cle, 15 * 60);
+
+        $utilisateur = static::trouverParEmail($email);
+
+        if (! $utilisateur || ! $utilisateur->actif || $utilisateur->mot_de_passe_defini_le === null) {
+            return;
+        }
+
+        $jetonRecent = JetonMotDePasse::query()
+            ->where('id_utilisateur', $utilisateur->id_utilisateur)
+            ->where('type', 'reinitialisation')
+            ->whereNull('utilise_le')
+            ->where('created_at', '>=', now()->subSeconds(60))
+            ->exists();
+
+        if ($jetonRecent) {
+            return;
+        }
+
+        static::envoyerLienReinitialisation($utilisateur, $request);
     }
 
     public static function definirMotDePasse(string $jeton, string $motDePasse, Request $request): Utilisateur
@@ -108,18 +170,34 @@ class CompteService
         return $utilisateur;
     }
 
-    public static function changerMotDePasse(Utilisateur $utilisateur, string $actuel, string $nouveau): void
+    public static function changerMotDePasse(Utilisateur $utilisateur, string $actuel, string $nouveau, ?Request $request = null): void
     {
         if (! Hash::check($actuel, $utilisateur->mot_de_passe)) {
             throw ValidationException::withMessages([
-                'mot_de_passe_actuel' => ['Le mot de passe actuel est incorrect.'],
+                'mot_de_passe_actuel' => ['Mot de passe actuel incorrect.'],
+            ]);
+        }
+
+        if (Hash::check($nouveau, $utilisateur->mot_de_passe)) {
+            throw ValidationException::withMessages([
+                'mot_de_passe' => ['Le nouveau mot de passe doit être différent de l\'actuel.'],
             ]);
         }
 
         $utilisateur->mot_de_passe = Hash::make($nouveau);
-        $utilisateur->mot_de_passe_defini_le = $utilisateur->mot_de_passe_defini_le ?? now();
+        $utilisateur->mot_de_passe_defini_le = now();
         $utilisateur->save();
-        $utilisateur->tokens()->delete();
+
+        $courant = $utilisateur->currentAccessToken();
+        $idCourant = $courant && isset($courant->id) ? $courant->id : null;
+        $utilisateur->tokens()
+            ->when($idCourant, fn ($q) => $q->where('id', '!=', $idCourant))
+            ->when(! $idCourant, fn ($q) => $q)
+            ->delete();
+
+        if ($request) {
+            JournalService::action($request, $utilisateur, 'changement_mot_de_passe', $utilisateur->nomComplet(), $utilisateur);
+        }
     }
 
     public static function verifierJeton(string $jeton): array
@@ -143,6 +221,15 @@ class CompteService
         $fin = mb_strlen($local) > 1 ? mb_substr($local, -1) : '';
 
         return $debut.'***'.$fin.($domaine !== '' ? '@'.$domaine : '');
+    }
+
+    public static function trouverParEmail(string $email): ?Utilisateur
+    {
+        $email = mb_strtolower(trim($email));
+
+        return Utilisateur::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->first();
     }
 
     private static function envoyerInvitation(Utilisateur $cible, Utilisateur $acteur, Request $request): void

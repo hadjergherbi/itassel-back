@@ -41,7 +41,12 @@ class AuthCompteTest extends TestCase
             'mot_de_passe' => 'mauvais',
         ])->assertStatus(422);
 
-        $this->assertSame('Mot de passe incorrect', Journal::where('resultat', 'echec')->latest('id_journal')->value('detail'));
+        $echec = Journal::where('action', 'connexion_echec')->latest('id_journal')->first();
+        $this->assertNotNull($echec);
+        $this->assertSame('echec', $echec->resultat);
+        $this->assertStringContainsString('Email saisi :', (string) $echec->detail);
+        $this->assertStringContainsString('***', (string) $echec->detail);
+        $this->assertStringNotContainsString('mauvais', (string) $echec->detail);
     }
 
     public function test_un_invite_ne_peut_pas_se_connecter(): void
@@ -56,7 +61,8 @@ class AuthCompteTest extends TestCase
             'mot_de_passe' => 'Itassel2026!',
         ])->assertStatus(422)->assertJson(['message' => 'Email ou mot de passe incorrect.']);
 
-        $this->assertSame('Invitation non acceptée', Journal::latest('id_journal')->value('detail'));
+        $this->assertSame('connexion_echec', Journal::latest('id_journal')->value('action'));
+        $this->assertStringContainsString('Email saisi :', (string) Journal::latest('id_journal')->value('detail'));
     }
 
     public function test_le_lien_d_invitation_definit_le_mot_de_passe_une_fois(): void

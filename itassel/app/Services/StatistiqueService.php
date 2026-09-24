@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Historique;
 use App\Models\Journal;
 use App\Models\Nature;
 use App\Models\Reaffectation;
@@ -10,10 +11,19 @@ use App\Models\Statut;
 use App\Models\Utilisateur;
 use App\Support\Acces;
 use App\Support\DoleanceFiltre;
+use App\Support\Periode;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 
 class StatistiqueService
 {
+    private const LIBELLES_MOIS = [
+        1 => 'Janv.', 2 => 'Févr.', 3 => 'Mars', 4 => 'Avr.',
+        5 => 'Mai', 6 => 'Juin', 7 => 'Juil.', 8 => 'Août',
+        9 => 'Sept.', 10 => 'Oct.', 11 => 'Nov.', 12 => 'Déc.',
+    ];
+
     public static function vueGlobale(Utilisateur $utilisateur): array
     {
         $visibles = Acces::doleancesVisibles($utilisateur);
@@ -205,5 +215,269 @@ class StatistiqueService
                     'motif'       => $j->detail,
                 ])->values(),
         ];
+    }
+
+    public static function tableauDeBord(Utilisateur $utilisateur, string $codePeriode = '6m'): array
+    {
+        $periode = Periode::resoudre($codePeriode);
+        $visibles = Acces::doleancesVisibles($utilisateur);
+        $statuts = Statut::orderBy('id_statut')->get(['id_statut', 'code', 'libelle', 'couleur']);
+        $totauxParStatut = (clone $visibles)
+            ->selectRaw('id_statut, COUNT(*) AS total')
+            ->groupBy('id_statut')
+            ->pluck('total', 'id_statut');
+
+        $totauxParCode = [];
+        foreach ($statuts as $statut) {
+            $totauxParCode[$statut->code] = (int) ($totauxParStatut[$statut->id_statut] ?? 0);
+        }
+
+        $deposees = (clone $visibles)->whereBetween('date_depot', [$periode['debut'], $periode['fin']]);
+        $depuis = (clone $visibles)->min('date_depot');
+        $idResolue = Statut::parCode(Statut::RESOLUE)->id_statut;
+
+        return [
+            'periode'     => [
+                'code'       => $periode['code'],
+                'date_debut' => $periode['date_debut'],
+                'date_fin'   => $periode['date_fin'],
+                'libelle'    => $periode['libelle'],
+            ],
+            'indicateurs' => [
+                'nouvelles'                  => $totauxParCode[Statut::NOUVELLE] ?? 0,
+                'en_cours'                   => $totauxParCode[Statut::EN_COURS] ?? 0,
+                'resolues'                   => (clone $deposees)->where('id_statut', $idResolue)->count(),
+                'total'                      => (clone $deposees)->count(),
+                'depuis'                     => $depuis ? substr((string) $depuis, 0, 10) : now()->toDateString(),
+                'delai_moyen_jours'          => static::delaiMoyen((clone $visibles), $periode['debut'], $periode['fin']),
+                'delai_moyen_tendance_jours' => static::delaiTendance(clone $visibles),
+            ],
+            'par_mois'            => static::parMois(clone $visibles, $periode['nb_mois']),
+            'repartition'         => $statuts->map(fn (Statut $statut) => [
+                'code'    => $statut->code,
+                'libelle' => $statut->libelle,
+                'total'   => $totauxParCode[$statut->code] ?? 0,
+            ])->values(),
+            'repartition_nature'  => static::repartitionNature(clone $deposees),
+            'priorites'           => static::priorites(clone $visibles),
+            'dernieres'           => static::dernieres(clone $visibles),
+            'mes_reaffectations'  => static::mesReaffectations($utilisateur),
+            'mes_reaffectations_en_attente' => Reaffectation::query()
+                ->where('id_demandeur', $utilisateur->id_utilisateur)
+                ->where('etat', 'en_attente')
+                ->count(),
+        ];
+    }
+
+    public static function parMois(Builder $query, int $nbMois = 6): array
+    {
+        $debut = now()->startOfMonth()->subMonths($nbMois - 1);
+        $expression = Schema::getConnection()->getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', date_depot)"
+            : "DATE_FORMAT(date_depot, '%Y-%m')";
+        $moisCourant = now()->format('Y-m');
+
+        $totaux = (clone $query)
+            ->where('date_depot', '>=', $debut)
+            ->selectRaw("{$expression} AS mois, COUNT(*) AS total")
+            ->groupByRaw($expression)
+            ->pluck('total', 'mois');
+
+        $parMois = [];
+        for ($i = 0; $i < $nbMois; $i++) {
+            $mois = $debut->copy()->addMonths($i);
+            $cle = $mois->format('Y-m');
+            $parMois[] = [
+                'mois'     => $cle,
+                'libelle'  => self::LIBELLES_MOIS[(int) $mois->format('n')],
+                'total'    => (int) ($totaux[$cle] ?? 0),
+                'en_cours' => $cle === $moisCourant,
+            ];
+        }
+
+        return $parMois;
+    }
+
+    public static function idsStatutsConclusion(): array
+    {
+        return Statut::query()
+            ->whereIn('code', config('itassel.statuts_conclusion', []))
+            ->pluck('id_statut')
+            ->all();
+    }
+
+    public static function delaiMoyen(Builder $visibles, Carbon $debut, Carbon $fin): ?float
+    {
+        $delais = static::delaisCloturees(clone $visibles, $debut, $fin);
+
+        if ($delais === []) {
+            return null;
+        }
+
+        return round(array_sum($delais) / count($delais), 1);
+    }
+
+    public static function delaiTendance(Builder $visibles): ?float
+    {
+        $actuel = static::delaiMoyen(clone $visibles, now()->startOfMonth(), now()->endOfMonth());
+        $precedent = static::delaiMoyen(
+            clone $visibles,
+            now()->subMonthNoOverflow()->startOfMonth(),
+            now()->subMonthNoOverflow()->endOfMonth(),
+        );
+
+        if ($actuel === null || $precedent === null) {
+            return null;
+        }
+
+        return round($actuel - $precedent, 1);
+    }
+
+    /**
+     * @return list<float>
+     */
+    private static function delaisCloturees(Builder $visibles, Carbon $debut, Carbon $fin): array
+    {
+        $ids = static::idsStatutsConclusion();
+        if ($ids === []) {
+            return [];
+        }
+
+        $doleances = (clone $visibles)->get(['id_doleance', 'date_depot']);
+        if ($doleances->isEmpty()) {
+            return [];
+        }
+
+        $clotures = Historique::query()
+            ->whereIn('id_doleance', $doleances->pluck('id_doleance'))
+            ->whereIn('id_statut_apres', $ids)
+            ->selectRaw('id_doleance, MIN(date_evenement) AS date_cloture')
+            ->groupBy('id_doleance')
+            ->get()
+            ->keyBy('id_doleance');
+
+        $delais = [];
+        foreach ($doleances as $doleance) {
+            $cloture = $clotures[$doleance->id_doleance]->date_cloture ?? null;
+            if (! $cloture) {
+                continue;
+            }
+            $dateCloture = Carbon::parse($cloture);
+            if ($dateCloture->lt($debut) || $dateCloture->gt($fin)) {
+                continue;
+            }
+            $delais[] = (float) $doleance->date_depot->startOfDay()->diffInDays($dateCloture->copy()->startOfDay());
+        }
+
+        return $delais;
+    }
+
+    private static function repartitionNature(Builder $deposees): array
+    {
+        $totaux = (clone $deposees)
+            ->selectRaw('id_nature, COUNT(*) AS total')
+            ->groupBy('id_nature')
+            ->pluck('total', 'id_nature');
+
+        return Nature::query()
+            ->whereIn('id_nature', $totaux->keys())
+            ->get(['id_nature', 'libelle'])
+            ->map(fn (Nature $nature) => [
+                'id_nature' => $nature->id_nature,
+                'libelle'   => $nature->libelle,
+                'total'     => (int) ($totaux[$nature->id_nature] ?? 0),
+            ])
+            ->sortByDesc('total')
+            ->values()
+            ->all();
+    }
+
+    public static function priorites(Builder $visibles): array
+    {
+        $nouvelleJours = (int) config('itassel.priorites.nouvelle_jours', 5);
+        $informationJours = (int) config('itassel.priorites.information_jours', 15);
+        $idNouvelle = Statut::parCode(Statut::NOUVELLE)->id_statut;
+
+        return [
+            'complements_a_examiner' => (clone $visibles)
+                ->whereHas('complements', fn ($q) => $q->where('etat', 'recu'))
+                ->count(),
+            'nouvelles_en_retard' => (clone $visibles)
+                ->where('id_statut', $idNouvelle)
+                ->where('date_depot', '<', now()->subDays($nouvelleJours))
+                ->count(),
+            'informations_sans_reponse' => DoleanceFiltre::appliquerInformationsSansReponse(clone $visibles)->count(),
+            'seuils' => [
+                'nouvelle_jours'    => $nouvelleJours,
+                'information_jours' => $informationJours,
+            ],
+        ];
+    }
+
+    public static function dernieres(Builder $visibles): array
+    {
+        $orange = (int) config('itassel.anciennete.orange', 5);
+        $rouge = (int) config('itassel.anciennete.rouge', 10);
+
+        return (clone $visibles)
+            ->whereHas('statut', fn ($q) => $q->whereIn('code', Statut::codesOuverts()))
+            ->with([
+                'statut:id_statut,code,libelle,couleur',
+                'nature:id_nature,libelle',
+            ])
+            ->orderBy('date_depot')
+            ->limit(5)
+            ->get(['id_doleance', 'reference', 'nom', 'prenom', 'date_depot', 'id_statut', 'id_nature'])
+            ->map(function ($doleance) use ($orange, $rouge) {
+                $age = (int) $doleance->date_depot->startOfDay()->diffInDays(now()->startOfDay());
+                $niveau = $age >= $rouge ? 'rouge' : ($age >= $orange ? 'orange' : 'normal');
+
+                return [
+                    'reference'  => $doleance->reference,
+                    'nom'        => $doleance->nom,
+                    'prenom'     => $doleance->prenom,
+                    'nature'     => $doleance->nature?->libelle,
+                    'date_depot' => $doleance->date_depot,
+                    'statut'     => $doleance->statut?->versApi(),
+                    'age_jours'  => $age,
+                    'niveau_age' => $niveau,
+                ];
+            })->values()->all();
+    }
+
+    public static function mesReaffectations(Utilisateur $utilisateur): array
+    {
+        return Reaffectation::query()
+            ->where('id_demandeur', $utilisateur->id_utilisateur)
+            ->with([
+                'doleance:id_doleance,reference',
+                'servicePropose:id_service,nom_service',
+                'serviceDestination:id_service,nom_service',
+            ])
+            ->orderByDesc('date_demande')
+            ->limit(3)
+            ->get()
+            ->map(function (Reaffectation $demande) {
+                $motifRefus = null;
+                if ($demande->etat === 'refusee') {
+                    $motifRefus = Historique::query()
+                        ->where('id_doleance', $demande->id_doleance)
+                        ->where('type_evenement', 'reaffectation_refusee')
+                        ->orderByDesc('date_evenement')
+                        ->value('detail');
+                }
+
+                return [
+                    'id_reaffectation'     => $demande->id_reaffectation,
+                    'reference'            => $demande->doleance?->reference,
+                    'service_propose'      => $demande->servicePropose?->nom_service,
+                    'service_destination'  => $demande->serviceDestination?->nom_service,
+                    'etat'                 => $demande->etat,
+                    'motif'                => $demande->motif,
+                    'motif_refus'          => $motifRefus,
+                    'date_demande'         => $demande->date_demande,
+                    'date_decision'        => $demande->date_decision,
+                ];
+            })->values()->all();
     }
 }

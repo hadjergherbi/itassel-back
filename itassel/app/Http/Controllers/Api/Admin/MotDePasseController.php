@@ -33,6 +33,12 @@ class MotDePasseController extends Controller
 
     public function oublie(Request $request)
     {
+        if (is_string($request->input('email'))) {
+            $request->merge([
+                'email' => mb_strtolower(trim($request->input('email'))),
+            ]);
+        }
+
         $data = $request->validate([
             'email' => ['required', 'email'],
         ]);

@@ -20,7 +20,8 @@ class Utilisateur extends Authenticatable
 
     protected $fillable = [
         'nom', 'prenom', 'email', 'actif', 'id_service',
-        'derniere_connexion', 'mot_de_passe_defini_le', 'invitation_envoyee_le',
+        'derniere_connexion', 'connexion_precedente',
+        'mot_de_passe_defini_le', 'invitation_envoyee_le',
     ];
 
     protected $hidden = ['mot_de_passe', 'remember_token'];
@@ -28,6 +29,7 @@ class Utilisateur extends Authenticatable
     protected $casts = [
         'actif'                   => 'boolean',
         'derniere_connexion'      => 'datetime',
+        'connexion_precedente'    => 'datetime',
         'mot_de_passe_defini_le'  => 'datetime',
         'invitation_envoyee_le'   => 'datetime',
         'supprime_le'             => 'datetime',
@@ -77,6 +79,26 @@ class Utilisateur extends Authenticatable
     {
         return $this->roleModele?->libelle
             ?? ($this->role === 'super_admin' ? 'Super administrateur' : 'Administrateur de service');
+    }
+
+    public function initiales(): string
+    {
+        return mb_strtoupper(
+            mb_substr((string) $this->prenom, 0, 1).mb_substr((string) $this->nom, 0, 1)
+        );
+    }
+
+    public function libelleRoleAffiche(): string
+    {
+        if ($this->estSuperAdmin()) {
+            return 'Super administrateur';
+        }
+
+        $service = $this->relationLoaded('service')
+            ? $this->service?->nom_service
+            : $this->service()->value('nom_service');
+
+        return $service ? 'Administrateur · '.$service : 'Administrateur de service';
     }
 
     public function etatCompte(): string

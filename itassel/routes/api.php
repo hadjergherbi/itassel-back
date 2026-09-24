@@ -30,6 +30,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/referentiels', [ReferentielController::class, 'index'])
     ->middleware('throttle:60,1');
 
+Route::get('/formulaire/jeton', [DoleanceController::class, 'jeton'])
+    ->middleware('throttle:30,1');
+
 Route::post('/doleances', [DoleanceController::class, 'store'])
     ->middleware('throttle:10,1');
 
@@ -59,7 +62,8 @@ Route::prefix('admin')->group(function () {
     Route::middleware(['auth:sanctum', 'compte.actif'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
-        Route::put('/mot-de-passe', [AuthController::class, 'changerMotDePasse']);
+        Route::put('/mot-de-passe', [AuthController::class, 'changerMotDePasse'])
+            ->middleware('throttle:5,1');
 
         Route::get('/mes-notifications', [NotificationAppController::class, 'index']);
         Route::get('/mes-notifications/compteur', [NotificationAppController::class, 'compteur']);
@@ -72,6 +76,8 @@ Route::prefix('admin')->group(function () {
 
         Route::get('/doleances', [DoleanceAdminController::class, 'index'])
             ->middleware('permission:doleances.voir');
+        Route::get('/doleances/export/apercu', [DoleanceAdminController::class, 'apercuExport'])
+            ->middleware('permission:doleances.exporter');
         Route::get('/doleances/export', [DoleanceAdminController::class, 'export'])
             ->middleware('permission:doleances.exporter');
         Route::get('/doleances/{reference}', [DoleanceAdminController::class, 'show'])
@@ -81,8 +87,16 @@ Route::prefix('admin')->group(function () {
             ->middleware('permission:doleances.changer_statut');
         Route::post('/doleances/{reference}/reponses', [DoleanceActionController::class, 'repondre'])
             ->middleware('permission:doleances.repondre');
+        Route::get('/doleances/{reference}/mentionnables', [DoleanceActionController::class, 'mentionnables'])
+            ->middleware(['permission:doleances.notes', 'throttle:60,1']);
         Route::post('/doleances/{reference}/notes', [DoleanceActionController::class, 'ajouterNote'])
             ->middleware('permission:doleances.notes');
+        Route::put('/doleances/{reference}/notes/{id}', [DoleanceActionController::class, 'modifierNote'])
+            ->middleware('permission:doleances.notes')
+            ->whereNumber('id');
+        Route::post('/doleances/{reference}/notes/{id}/epingler', [DoleanceActionController::class, 'epinglerNote'])
+            ->middleware('permission:doleances.notes')
+            ->whereNumber('id');
         Route::post('/doleances/{reference}/complements', [DoleanceActionController::class, 'demanderComplement'])
             ->middleware('permission:complements.demander');
         Route::post('/doleances/{reference}/reclasser', [DoleanceActionController::class, 'reclasser'])
@@ -110,6 +124,9 @@ Route::prefix('admin')->group(function () {
             ->middleware('permission:reaffectations.decider')
             ->whereNumber('id');
 
+        Route::get('/pieces-jointes/{id}/apercu', [PieceJointeController::class, 'apercu'])
+            ->middleware('throttle:60,1')
+            ->whereNumber('id');
         Route::get('/pieces-jointes/{id}/telecharger', [PieceJointeController::class, 'telecharger'])
             ->whereNumber('id');
         Route::post('/notifications/{id}/renvoyer', [NotificationAdminController::class, 'renvoyer'])

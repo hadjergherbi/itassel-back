@@ -31,18 +31,9 @@ class NotificationsTest extends TestCase
         $inactif = $this->adminService($service, ['actif' => false, 'email' => 'inactif@itassel.test']);
         $horsPerimetre = $this->adminService($autre);
 
-        $this->postJson('/api/doleances', [
-            'nom' => 'Citoyen',
-            'prenom' => 'Test',
-            'email' => 'citoyen@example.test',
-            'telephone' => '0550000000',
-            'wilaya' => 'Alger',
-            'objet' => 'Objet de test',
-            'description' => 'Description suffisamment longue.',
+        $this->postJson('/api/doleances', $this->champsDepotPublic([
             'id_service' => $service->id_service,
-            'id_nature' => \App\Models\Nature::first()->id_nature,
-            'id_qualite' => \App\Models\Qualite::first()->id_qualite,
-        ])->assertCreated();
+        ]))->assertCreated();
 
         $this->assertGreaterThan(0, NotificationApp::count());
         $this->assertFalse(NotificationApp::where('id_utilisateur', $inactif->id_utilisateur)->exists());

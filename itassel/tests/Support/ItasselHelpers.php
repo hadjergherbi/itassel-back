@@ -8,6 +8,7 @@ use App\Models\Qualite;
 use App\Models\Service;
 use App\Models\Statut;
 use App\Models\Utilisateur;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
@@ -65,6 +66,28 @@ trait ItasselHelpers
         Sanctum::actingAs($utilisateur);
 
         return $this;
+    }
+
+    protected function jetonFormulaireValide(int $ageSecondes = 4): string
+    {
+        return Crypt::encryptString((string) now()->subSeconds($ageSecondes)->timestamp);
+    }
+
+    protected function champsDepotPublic(array $extra = []): array
+    {
+        return array_merge([
+            'nom'              => 'Citoyen',
+            'prenom'           => 'Test',
+            'email'            => 'citoyen@example.test',
+            'telephone'        => '0550000000',
+            'wilaya'           => 'Alger',
+            'objet'            => 'Objet de test',
+            'description'      => 'Description suffisamment longue.',
+            'id_service'       => Service::first()->id_service,
+            'id_nature'        => Nature::first()->id_nature,
+            'id_qualite'       => Qualite::first()->id_qualite,
+            'jeton_formulaire' => $this->jetonFormulaireValide(),
+        ], $extra);
     }
 
     protected function doleance(array $attrs = []): Doleance

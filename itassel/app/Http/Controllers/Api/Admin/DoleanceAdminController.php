@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Doleance;
+use App\Models\Nature;
 use App\Models\Reaffectation;
 use App\Models\Service;
 use App\Models\Statut;
@@ -12,8 +13,11 @@ use App\Services\JournalService;
 use App\Services\ReclassementService;
 use App\Support\Acces;
 use App\Support\DoleanceFiltre;
+use App\Support\Periode;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class DoleanceAdminController extends Controller
 {
@@ -82,6 +86,7 @@ class DoleanceAdminController extends Controller
                 'nature:id_nature,libelle',
                 'responsable:id_utilisateur,nom,prenom',
             ])
+            ->withCount('notesInternes as nb_notes')
             ->withExists([
                 'complements as complement_a_examiner' => fn ($q) => $q->where('etat', 'recu'),
                 'reaffectations as reaffectation_en_attente' => fn ($q) => $q->where('etat', 'en_attente'),
@@ -93,6 +98,7 @@ class DoleanceAdminController extends Controller
             ]);
 
         $page->through(function ($doleance) {
+            $doleance->setAttribute('nb_notes', (int) $doleance->nb_notes);
             $doleance->setAttribute('complement_a_examiner', (bool) $doleance->complement_a_examiner);
             $doleance->setAttribute('reaffectation_en_attente', (bool) $doleance->reaffectation_en_attente);
             $doleance->setAttribute('service_sans_responsable', $doleance->service?->id_responsable === null);
@@ -137,8 +143,15 @@ class DoleanceAdminController extends Controller
                     ]),
                 'reponses' => fn ($q) => $q->orderByDesc('date_publication')
                     ->with('auteur:id_utilisateur,nom,prenom'),
-                'notesInternes' => fn ($q) => $q->orderByDesc('date_creation')
-                    ->with('auteur:id_utilisateur,nom,prenom'),
+                'notesInternes' => fn ($q) => $q
+                    ->orderByDesc('epinglee')
+                    ->orderBy('epinglee_le')
+                    ->orderBy('created_at')
+                    ->with([
+                        'auteur.service',
+                        'mentions:id_utilisateur,nom,prenom',
+                        'epingleePar:id_utilisateur,nom,prenom',
+                    ]),
                 'historique' => fn ($q) => $q->with([
                     'utilisateur:id_utilisateur,nom,prenom',
                     'statutAvant:id_statut,code,libelle,couleur',
@@ -166,6 +179,20 @@ class DoleanceAdminController extends Controller
         $reaffectations = $doleance->reaffectations->map->versApi()->values();
 
         $donnees = $doleance->toArray();
+        $donnees['notes_internes'] = $doleance->notesInternes
+            ->sort(function ($a, $b) {
+                if ((bool) $a->epinglee !== (bool) $b->epinglee) {
+                    return $b->epinglee <=> $a->epinglee;
+                }
+                if ($a->epinglee) {
+                    return ($a->epinglee_le?->timestamp ?? 0) <=> ($b->epinglee_le?->timestamp ?? 0);
+                }
+
+                return ($a->dateReference()?->timestamp ?? 0) <=> ($b->dateReference()?->timestamp ?? 0);
+            })
+            ->values()
+            ->map(fn ($note) => $note->versApi($utilisateur))
+            ->values();
         $donnees['complements'] = $doleance->complements->map(function ($complement) {
             $ligne = $complement->toArray();
             $ligne['annule_par'] = $complement->annulePar
@@ -205,6 +232,43 @@ class DoleanceAdminController extends Controller
     }
 
     /**
+     * GET /api/admin/doleances/export/apercu
+     */
+    public function apercuExport(Request $request)
+    {
+        $utilisateur = $request->user();
+        $filtres = DoleanceFiltre::valider($request, false);
+        [$dateDebut, $dateFin] = Periode::depuisFiltre($filtres);
+
+        $periode = DoleanceFiltre::appliquer(
+            Acces::doleancesVisibles($utilisateur),
+            $utilisateur,
+            collect($filtres)->except(['nature', 'natures'])->all(),
+        );
+
+        $totaux = (clone $periode)
+            ->selectRaw('id_nature, COUNT(*) AS total')
+            ->groupBy('id_nature')
+            ->pluck('total', 'id_nature');
+
+        $parNature = Nature::orderBy('libelle')->get(['id_nature', 'libelle'])
+            ->map(fn (Nature $nature) => [
+                'id_nature' => $nature->id_nature,
+                'libelle'   => $nature->libelle,
+                'total'     => (int) ($totaux[$nature->id_nature] ?? 0),
+            ])->values();
+
+        $total = $this->requeteFiltree($utilisateur, $filtres)->count();
+
+        return response()->json([
+            'total'      => $total,
+            'par_nature' => $parNature,
+            'date_debut' => $dateDebut,
+            'date_fin'   => $dateFin,
+        ]);
+    }
+
+    /**
      * GET /api/admin/doleances/export
      * Mêmes filtres que la liste, sans pagination. CSV UTF-8 avec BOM, séparateur « ; ».
      */
@@ -229,10 +293,51 @@ class DoleanceAdminController extends Controller
             ->orderByDesc('date_depot')
             ->get();
 
+        if ($doleances->isEmpty()) {
+            return response()->json(['message' => 'Aucune doléance ne correspond à ces critères.'], 422);
+        }
+
+        [$dateDebut, $dateFin] = Periode::depuisFiltre($filtres);
+        $slugService = $this->slugServiceExport($utilisateur, $filtres);
+        $format = $filtres['format'] ?? 'csv';
+        $nomFichier = 'doleances_'.$slugService.'_'.$dateDebut.'_'.$dateFin.'.'.$format;
+
+        $detail = 'Liste des doléances';
+        if (! $utilisateur->estSuperAdmin() && $utilisateur->service) {
+            $detail .= ' — '.$utilisateur->service->nom_service;
+        } elseif (! empty($filtres['service'])) {
+            $nom = Service::whereKey($filtres['service'])->value('nom_service');
+            if ($nom) {
+                $detail .= ' — '.$nom;
+            }
+        }
+
+        if ($format === 'pdf') {
+            JournalService::action($request, $utilisateur, 'export_pdf', $detail);
+
+            $natures = $doleances->pluck('nature.libelle')->filter()->unique()->values()->all();
+            $libelleService = ! $utilisateur->estSuperAdmin() && $utilisateur->service
+                ? $utilisateur->service->nom_service
+                : (! empty($filtres['service'])
+                    ? (Service::whereKey($filtres['service'])->value('nom_service') ?? 'Tous les services')
+                    : 'Tous les services');
+            $pdf = Pdf::loadView('exports.doleances', [
+                'doleances'   => $doleances,
+                'service'     => $libelleService,
+                'date_debut'  => $dateDebut,
+                'date_fin'    => $dateFin,
+                'natures'     => $natures,
+                'genere_le'   => now()->format('d/m/Y H:i'),
+                'agent'       => $utilisateur->nomComplet(),
+            ])->setPaper('a4', 'landscape');
+
+            return $pdf->download($nomFichier);
+        }
+
         $chemin = tmpfile();
         fwrite($chemin, "\xEF\xBB\xBF");
         fputcsv($chemin, [
-            'Référence', 'Nom', 'Prénom', 'Catégorie', 'Service',
+            'Référence', 'Nom', 'Prénom', 'Catégorie', 'Nature', 'Service',
             'Wilaya', 'Date de dépôt', 'Statut', 'Responsable',
         ], ';');
 
@@ -241,6 +346,7 @@ class DoleanceAdminController extends Controller
                 $doleance->reference,
                 $doleance->nom,
                 $doleance->prenom,
+                $doleance->nature?->libelle ?? '',
                 $doleance->nature?->libelle ?? '',
                 $doleance->service?->nom_service ?? '',
                 $doleance->wilaya,
@@ -254,24 +360,26 @@ class DoleanceAdminController extends Controller
         $contenu = stream_get_contents($chemin);
         fclose($chemin);
 
-        $detail = 'Liste des doléances';
-        if (! $utilisateur->estSuperAdmin() && $utilisateur->service) {
-            $detail .= ' — '.$utilisateur->service->nom_service;
-        } elseif (! empty($filtres['service'])) {
-            $nom = Service::whereKey($filtres['service'])->value('nom_service');
-            if ($nom) {
-                $detail .= ' — '.$nom;
-            }
-        }
-
         JournalService::action($request, $utilisateur, 'export_csv', $detail);
-
-        $nomFichier = 'doleances-'.now()->format('Y-m-d').'.csv';
 
         return response($contenu, 200, [
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.$nomFichier.'"',
         ]);
+    }
+
+    private function slugServiceExport(Utilisateur $utilisateur, array $filtres): string
+    {
+        $nom = null;
+        if (! $utilisateur->estSuperAdmin() && $utilisateur->service) {
+            $nom = $utilisateur->service->nom_service;
+        } elseif (! empty($filtres['service'])) {
+            $nom = Service::whereKey($filtres['service'])->value('nom_service');
+        }
+
+        $slug = Str::slug((string) ($nom ?: 'tous'), '_');
+
+        return $slug !== '' ? $slug : 'tous';
     }
 
     private function requeteFiltree(Utilisateur $utilisateur, array $filtres): Builder

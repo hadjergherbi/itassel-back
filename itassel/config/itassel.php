@@ -26,6 +26,16 @@ return [
 
     'statuts_conclusion' => $issues,
 
+    'priorites' => [
+        'nouvelle_jours'     => 5,
+        'information_jours'  => 15,
+    ],
+
+    'anciennete' => [
+        'orange' => 5,
+        'rouge'  => 10,
+    ],
+
     'issues' => [
         'resolue'          => ['familles' => ['reclamation'], 'exige' => 'message'],
         'reponse_apportee' => ['familles' => ['demande'], 'exige' => 'message'],
@@ -44,10 +54,16 @@ return [
         'categories' => ['connexion', 'doleance', 'affectation', 'utilisateur', 'parametre', 'export'],
         'actions'    => [
             'connexion'                    => ['Connexion', 'connexion'],
+            'connexion_echec'              => ['Échec de connexion', 'connexion'],
+            'compte_verrouille'            => ['Compte temporairement verrouillé', 'connexion'],
             'deconnexion'                  => ['Déconnexion', 'connexion'],
             'changement_statut'            => ['Changement de statut', 'doleance'],
             'reponse'                      => ['Réponse au demandeur', 'doleance'],
+            'consultation_piece_jointe'    => ['Consultation de pièce jointe', 'doleance'],
             'note_interne'                 => ['Note interne', 'doleance'],
+            'modification_note'            => ['Modification de note interne', 'doleance'],
+            'epinglage_note'               => ['Épinglage de note interne', 'doleance'],
+            'mention_note'                 => ['Mention dans une note interne', 'doleance'],
             'complement_demande'           => ['Demande de complément', 'doleance'],
             'complement_annule'            => ['Annulation de complément', 'doleance'],
             'complement_examine'           => ['Examen de complément', 'doleance'],
@@ -81,7 +97,9 @@ return [
             'modification_statut'          => ['Modification de statut', 'parametre'],
             'modification_notifications'   => ['Modification des notifications', 'parametre'],
             'export_csv'                   => ['Export CSV', 'export'],
+            'export_pdf'                   => ['Export PDF', 'export'],
             'export_journal'               => ['Export du journal', 'export'],
+            'changement_mot_de_passe'      => ['Changement de mot de passe', 'utilisateur'],
         ],
     ],
 
@@ -113,6 +131,13 @@ return [
         'super_admin' => ['roles.gerer', 'utilisateurs.gerer'],
     ],
 
+    'securite' => [
+        'login_max_echecs'       => 5,
+        'login_blocage_minutes'  => 15,
+        'formulaire_delai_min'   => 3,
+        'formulaire_delai_max'   => 7200,
+    ],
+
     'notifications' => [
         'defauts' => [
             ['evenement' => 'doleance_deposee', 'destinataire' => 'demandeur', 'canal_email' => true, 'canal_app' => false, 'modifiable' => false],
@@ -133,7 +158,14 @@ return [
             ['evenement' => 'doleance_reaffectee', 'destinataire' => 'responsable', 'canal_email' => true, 'canal_app' => true, 'modifiable' => true],
             ['evenement' => 'doleance_reaffectee', 'destinataire' => 'admins_service', 'canal_email' => false, 'canal_app' => true, 'modifiable' => true],
             ['evenement' => 'responsable_designe', 'destinataire' => 'utilisateur_designe', 'canal_email' => true, 'canal_app' => true, 'modifiable' => true],
+            ['evenement' => 'mention_note', 'destinataire' => 'utilisateur_mentionne', 'canal_email' => false, 'canal_app' => true, 'modifiable' => false],
         ],
+    ],
+
+    'notes' => [
+        'modification_minutes' => 15,
+        'max_epinglees'        => 3,
+        'max_mentions'         => 5,
     ],
 
 ];

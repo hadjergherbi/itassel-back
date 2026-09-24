@@ -34,5 +34,7 @@
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="AUTH_MODEL" value="App\Models\Utilisateur"/>
         <env name="ITASSEL_FRONTEND_URL" value="http://localhost:5173"/>
+        <env name="SANCTUM_EXPIRATION" value="480"/>
+        <env name="CORS_ALLOWED_ORIGINS" value="http://localhost:5173"/>
     </php>
 </phpunit>

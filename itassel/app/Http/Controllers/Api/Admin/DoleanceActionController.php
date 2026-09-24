@@ -16,6 +16,7 @@ use App\Models\Statut;
 use App\Models\Utilisateur;
 use App\Services\ComplementService;
 use App\Services\JournalService;
+use App\Services\NoteInterneService;
 use App\Services\NotificationDispatcher;
 use App\Services\ReaffectationService;
 use App\Services\ReclassementService;
@@ -256,8 +257,28 @@ class DoleanceActionController extends Controller
     }
 
     /**
+     * GET /api/admin/doleances/{reference}/mentionnables
+     */
+    public function mentionnables(Request $request, string $reference)
+    {
+        $utilisateur = $request->user();
+        $doleance = $this->trouver($utilisateur, $reference);
+        if (! $doleance) {
+            return $this->introuvable();
+        }
+
+        $liste = NoteInterneService::mentionnables(
+            $doleance,
+            $utilisateur,
+            (string) $request->query('q', ''),
+        )->map(fn (Utilisateur $u) => NoteInterneService::mentionnableVersApi($u))->values();
+
+        return response()->json($liste);
+    }
+
+    /**
      * POST /api/admin/doleances/{reference}/notes
-     * Corps : contenu. Jamais visible du demandeur.
+     * Corps : contenu, mentions, notifier_email, etiquette. Jamais visible du demandeur.
      */
     public function ajouterNote(Request $request, string $reference)
     {
@@ -267,23 +288,106 @@ class DoleanceActionController extends Controller
             return $this->introuvable();
         }
 
+        $maxMentions = (int) config('itassel.notes.max_mentions', 5);
         $data = $request->validate([
-            'contenu' => ['required', 'string', 'max:2000'],
+            'contenu'        => ['required', 'string', 'max:2000'],
+            'mentions'       => ['sometimes', 'array', 'max:'.$maxMentions],
+            'mentions.*'     => ['integer', 'distinct', 'exists:utilisateurs,id_utilisateur'],
+            'notifier_email' => ['sometimes', 'boolean'],
+            'etiquette'      => ['nullable', 'in:information,a_verifier,urgent'],
         ]);
 
-        $note = NoteInterne::create([
-            'contenu'       => $data['contenu'],
-            'date_creation' => now(),
-            'id_doleance'   => $doleance->id_doleance,
-            'id_auteur'     => $utilisateur->id_utilisateur,
-        ]);
-
-        JournalService::action($request, $utilisateur, 'note_interne', $doleance->reference, $doleance);
+        $note = DB::transaction(fn () => NoteInterneService::creer(
+            $request,
+            $doleance,
+            $utilisateur,
+            $data['contenu'],
+            array_map('intval', $data['mentions'] ?? []),
+            $request->boolean('notifier_email'),
+            $data['etiquette'] ?? null,
+        ));
 
         return response()->json([
             'message' => 'Note ajoutée.',
-            'note'    => $note->load('auteur:id_utilisateur,nom,prenom'),
+            'note'    => $note->versApi($utilisateur),
         ], 201);
+    }
+
+    /**
+     * PUT /api/admin/doleances/{reference}/notes/{id}
+     */
+    public function modifierNote(Request $request, string $reference, int $id)
+    {
+        $utilisateur = $request->user();
+        $doleance = $this->trouver($utilisateur, $reference);
+        if (! $doleance) {
+            return $this->introuvable();
+        }
+
+        $note = $this->noteDuDossier($doleance, $id);
+        if (! $note) {
+            return response()->json(['message' => 'Note introuvable.'], 404);
+        }
+
+        if ((int) $note->id_auteur !== (int) $utilisateur->id_utilisateur) {
+            return response()->json(['message' => 'Vous ne pouvez modifier que vos propres notes.'], 403);
+        }
+
+        if (! $note->estEncoreModifiable()) {
+            $minutes = (int) config('itassel.notes.modification_minutes', 15);
+
+            return response()->json([
+                'message' => 'Le délai de modification de '.$minutes.' minutes est dépassé.',
+            ], 409);
+        }
+
+        $maxMentions = (int) config('itassel.notes.max_mentions', 5);
+        $data = $request->validate([
+            'contenu'    => ['required', 'string', 'max:2000'],
+            'mentions'   => ['sometimes', 'array', 'max:'.$maxMentions],
+            'mentions.*' => ['integer', 'distinct', 'exists:utilisateurs,id_utilisateur'],
+            'etiquette'  => ['nullable', 'in:information,a_verifier,urgent'],
+        ]);
+
+        $note = DB::transaction(fn () => NoteInterneService::modifier(
+            $request,
+            $doleance,
+            $note,
+            $utilisateur,
+            $data['contenu'],
+            $request->exists('mentions') ? array_map('intval', $data['mentions'] ?? []) : null,
+            $data['etiquette'] ?? null,
+            $request->exists('etiquette'),
+        ));
+
+        return response()->json([
+            'message' => 'Note mise à jour.',
+            'note'    => $note->versApi($utilisateur),
+        ]);
+    }
+
+    /**
+     * POST /api/admin/doleances/{reference}/notes/{id}/epingler
+     */
+    public function epinglerNote(Request $request, string $reference, int $id)
+    {
+        $utilisateur = $request->user();
+        $doleance = $this->trouver($utilisateur, $reference);
+        if (! $doleance) {
+            return $this->introuvable();
+        }
+
+        $note = $this->noteDuDossier($doleance, $id);
+        if (! $note) {
+            return response()->json(['message' => 'Note introuvable.'], 404);
+        }
+
+        $note = NoteInterneService::basculerEpinglage($request, $doleance, $note, $utilisateur);
+
+        return response()->json([
+            'message' => $note->epinglee ? 'Note épinglée.' : 'Note désépinglée.',
+            'note'    => $note->versApi($utilisateur),
+        ]);
     }
 
     /**
@@ -580,6 +684,14 @@ class DoleanceActionController extends Controller
             : null;
 
         return $donnees;
+    }
+
+    private function noteDuDossier(Doleance $doleance, int $id): ?NoteInterne
+    {
+        return NoteInterne::query()
+            ->where('id_doleance', $doleance->id_doleance)
+            ->whereKey($id)
+            ->first();
     }
 
     private function introuvable()

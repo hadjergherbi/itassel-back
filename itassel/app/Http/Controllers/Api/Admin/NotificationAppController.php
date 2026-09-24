@@ -10,6 +10,11 @@ class NotificationAppController extends Controller
 {
     public function index(Request $request)
     {
+        $data = $request->validate([
+            'par_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'non_lues' => ['nullable'],
+        ]);
+
         $query = $request->user()->notificationsApp()
             ->with('doleance:id_doleance,reference')
             ->orderByDesc('created_at');
@@ -18,8 +23,10 @@ class NotificationAppController extends Controller
             $query->whereNull('lue_le');
         }
 
+        $parPage = (int) ($data['par_page'] ?? 20);
+
         return response()->json(
-            $query->paginate(20)->through(fn (NotificationApp $n) => [
+            $query->paginate($parPage)->through(fn (NotificationApp $n) => [
                 'id_notification_app' => $n->id_notification_app,
                 'evenement'           => $n->evenement,
                 'titre'               => $n->titre,
