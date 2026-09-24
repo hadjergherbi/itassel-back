@@ -10,7 +10,7 @@ class NotificationApp extends Model
     protected $primaryKey = 'id_notification_app';
 
     protected $fillable = [
-        'id_utilisateur', 'evenement', 'titre', 'message', 'id_doleance', 'lue_le',
+        'id_utilisateur', 'evenement', 'titre', 'message', 'id_doleance', 'id_note', 'lue_le',
     ];
 
     protected $casts = [
@@ -25,5 +25,10 @@ class NotificationApp extends Model
     public function doleance()
     {
         return $this->belongsTo(Doleance::class, 'id_doleance', 'id_doleance');
+    }
+
+    public function note()
+    {
+        return $this->belongsTo(NoteInterne::class, 'id_note', 'id_note');
     }
 }

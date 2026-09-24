@@ -204,6 +204,7 @@ class NoteInterneService
 
         $mentionnes = Utilisateur::query()
             ->whereIn('id_utilisateur', $ids)
+            ->where('actif', true)
             ->get()
             ->keyBy('id_utilisateur');
 
@@ -211,6 +212,10 @@ class NoteInterneService
         $titre = $auteur->nomComplet().' vous a mentionné';
 
         foreach ($ids as $id) {
+            if ((int) $id === (int) $auteur->id_utilisateur) {
+                continue;
+            }
+
             $cible = $mentionnes->get($id);
             if (! $cible) {
                 continue;
@@ -222,6 +227,7 @@ class NoteInterneService
                 'titre'          => mb_substr($titre, 0, 150),
                 'message'        => $extrait,
                 'id_doleance'    => $doleance->id_doleance,
+                'id_note'        => $note->id_note,
             ]);
 
             JournalService::action(
