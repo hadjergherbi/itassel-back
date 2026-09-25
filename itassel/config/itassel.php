@@ -52,6 +52,15 @@ return [
 
     'journal' => [
         'categories' => ['connexion', 'doleance', 'affectation', 'utilisateur', 'parametre', 'export'],
+        'sensibles'  => [
+            'desactivation_utilisateur',
+            'modification_permissions_role',
+            'compte_verrouille',
+            'export_csv',
+            'export_pdf',
+            'export_journal',
+            'reinitialisation_mot_de_passe',
+        ],
         'actions'    => [
             'connexion'                    => ['Connexion', 'connexion'],
             'connexion_echec'              => ['Échec de connexion', 'connexion'],
@@ -85,6 +94,7 @@ return [
             'modification_permissions_role' => ['Modification des permissions', 'utilisateur'],
             'creation_service'             => ['Création de service', 'parametre'],
             'modification_service'         => ['Modification de service', 'parametre'],
+            'suppression_service'          => ['Suppression de service', 'parametre'],
             'creation_nature'              => ['Création de nature', 'parametre'],
             'modification_nature'          => ['Modification de nature', 'parametre'],
             'suppression_nature'           => ['Suppression de nature', 'parametre'],

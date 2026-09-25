@@ -184,7 +184,7 @@ class SecuriteTest extends TestCase
         $this->assertEnTetesSecurite($json);
         $this->assertNull($json->headers->get('X-Powered-By'));
 
-        $this->doleance();
+        $this->doleance(['date_depot' => '2026-06-15']);
         $this->connecter($this->superAdmin());
         $export = $this->get('/api/admin/doleances/export?date_debut=2026-01-01&date_fin=2026-09-24')
             ->assertOk();

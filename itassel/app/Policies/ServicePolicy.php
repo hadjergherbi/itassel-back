@@ -16,4 +16,9 @@ class ServicePolicy
     {
         return $acteur->peut('services.gerer');
     }
+
+    public function delete(Utilisateur $acteur, Service $service): bool
+    {
+        return $acteur->estSuperAdmin() && $acteur->peut('services.gerer');
+    }
 }

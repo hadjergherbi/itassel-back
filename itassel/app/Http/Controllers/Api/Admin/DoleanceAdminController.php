@@ -13,6 +13,7 @@ use App\Services\JournalService;
 use App\Services\ReclassementService;
 use App\Support\Acces;
 use App\Support\DoleanceFiltre;
+use App\Support\GraphiqueCirculaire;
 use App\Support\Periode;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +22,19 @@ use Illuminate\Support\Str;
 
 class DoleanceAdminController extends Controller
 {
+    private const COULEURS_STATUT = [
+        'nouvelle'             => '#1a5f9e',
+        'en_cours'             => '#d97706',
+        'information_demandee' => '#7c3aed',
+        'resolue'              => '#006b3f',
+        'reponse_apportee'     => '#006b3f',
+        'hors_competence'      => '#6b7280',
+        'non_retenue'          => '#b42318',
+        'non_fondee'           => '#b42318',
+        'double'               => '#0f766e',
+        'cloturee'             => '#6b7280',
+    ];
+
     /**
      * GET /api/admin/statuts
      * Liste des statuts (filtres de la liste, menu « changer le statut »).
@@ -283,9 +297,10 @@ class DoleanceAdminController extends Controller
             $query->whereHas('complements', fn ($q) => $q->where('etat', 'recu'));
         }
 
+        $base = clone $query;
         $doleances = $query
             ->with([
-                'statut:id_statut,libelle',
+                'statut:id_statut,code,libelle',
                 'service:id_service,nom_service',
                 'nature:id_nature,libelle',
                 'responsable:id_utilisateur,nom,prenom',
@@ -321,6 +336,9 @@ class DoleanceAdminController extends Controller
                 : (! empty($filtres['service'])
                     ? (Service::whereKey($filtres['service'])->value('nom_service') ?? 'Tous les services')
                     : 'Tous les services');
+            $synthese = ($filtres['graphiques'] ?? true) !== false;
+            $parService = $utilisateur->estSuperAdmin() && empty($filtres['service']);
+            $chiffres = $this->chiffresDoleances($doleances, $base, $doleances->count() > 2000);
             $pdf = Pdf::loadView('exports.doleances', [
                 'doleances'   => $doleances,
                 'service'     => $libelleService,
@@ -329,6 +347,14 @@ class DoleanceAdminController extends Controller
                 'natures'     => $natures,
                 'genere_le'   => now()->format('d/m/Y H:i'),
                 'agent'       => $utilisateur->nomComplet(),
+                'synthese'    => $synthese,
+                'total'       => $chiffres['total'],
+                'resolues'    => $chiffres['resolues'],
+                'en_cours'    => $chiffres['en_cours'],
+                'taux_resolution' => $chiffres['taux'],
+                'graphiques'  => $synthese
+                    ? $this->graphiquesDoleances($doleances, $base, $parService, $doleances->count() > 2000)
+                    : [],
             ])->setPaper('a4', 'landscape');
 
             return $pdf->download($nomFichier);
@@ -366,6 +392,152 @@ class DoleanceAdminController extends Controller
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.$nomFichier.'"',
         ]);
+    }
+
+    /**
+     * @return array{total: int, resolues: int, en_cours: int, taux: float}
+     */
+    private function chiffresDoleances($doleances, Builder $base, bool $sql): array
+    {
+        if ($sql) {
+            $totaux = (clone $base)
+                ->join('statuts', 'statuts.id_statut', '=', 'doleances.id_statut')
+                ->selectRaw('statuts.code as code, COUNT(*) as total')
+                ->groupBy('statuts.code')
+                ->pluck('total', 'code');
+            $total = (int) $totaux->sum();
+            $resolues = (int) ($totaux[Statut::RESOLUE] ?? 0);
+            $enCours = (int) ($totaux[Statut::EN_COURS] ?? 0);
+        } else {
+            $total = $doleances->count();
+            $resolues = $doleances->filter(fn ($d) => $d->statut?->code === Statut::RESOLUE)->count();
+            $enCours = $doleances->filter(fn ($d) => $d->statut?->code === Statut::EN_COURS)->count();
+        }
+
+        return [
+            'total'    => $total,
+            'resolues' => $resolues,
+            'en_cours' => $enCours,
+            'taux'     => $total > 0 ? round($resolues / $total * 100, 1) : 0.0,
+        ];
+    }
+
+    /**
+     * @return list<array{titre: string, image: ?string, legende: list<array<string, mixed>>}>
+     */
+    private function graphiquesDoleances($doleances, Builder $base, bool $parService, bool $sql): array
+    {
+        if ($sql) {
+            $statuts = (clone $base)
+                ->join('statuts', 'statuts.id_statut', '=', 'doleances.id_statut')
+                ->selectRaw('statuts.code as code, statuts.libelle as libelle, COUNT(*) as total')
+                ->groupBy('statuts.code', 'statuts.libelle')
+                ->get()
+                ->map(fn ($ligne) => [
+                    'libelle' => $ligne->libelle,
+                    'valeur'  => (int) $ligne->total,
+                    'couleur' => self::COULEURS_STATUT[$ligne->code] ?? null,
+                ])->all();
+
+            $natures = (clone $base)
+                ->join('natures', 'natures.id_nature', '=', 'doleances.id_nature')
+                ->selectRaw('natures.libelle as libelle, COUNT(*) as total')
+                ->groupBy('natures.libelle')
+                ->get()
+                ->map(fn ($ligne) => ['libelle' => $ligne->libelle, 'valeur' => (int) $ligne->total])
+                ->all();
+
+            $services = $parService
+                ? (clone $base)
+                    ->join('services', 'services.id_service', '=', 'doleances.id_service')
+                    ->selectRaw('services.nom_service as libelle, COUNT(*) as total')
+                    ->groupBy('services.nom_service')
+                    ->get()
+                    ->map(fn ($ligne) => ['libelle' => $ligne->libelle, 'valeur' => (int) $ligne->total])
+                    ->all()
+                : [];
+
+            $wilayas = (clone $base)
+                ->selectRaw("COALESCE(NULLIF(wilaya, ''), 'Non renseignée') as libelle, COUNT(*) as total")
+                ->groupBy('libelle')
+                ->orderByDesc('total')
+                ->get()
+                ->map(fn ($ligne) => ['libelle' => $ligne->libelle, 'valeur' => (int) $ligne->total])
+                ->all();
+        } else {
+            $statuts = $doleances
+                ->groupBy(fn ($d) => $d->statut?->code ?? '')
+                ->map(fn ($groupe, $code) => [
+                    'libelle' => $groupe->first()->statut?->libelle ?? 'Sans statut',
+                    'valeur'  => $groupe->count(),
+                    'couleur' => self::COULEURS_STATUT[$code] ?? null,
+                ])->values()->all();
+
+            $natures = $doleances
+                ->groupBy(fn ($d) => $d->nature?->libelle ?? 'Sans nature')
+                ->map(fn ($groupe, $libelle) => ['libelle' => $libelle, 'valeur' => $groupe->count()])
+                ->values()->all();
+
+            $services = $parService
+                ? $doleances
+                    ->groupBy(fn ($d) => $d->service?->nom_service ?? 'Sans service')
+                    ->map(fn ($groupe, $libelle) => ['libelle' => $libelle, 'valeur' => $groupe->count()])
+                    ->values()->all()
+                : [];
+
+            $wilayas = $doleances
+                ->groupBy(fn ($d) => $d->wilaya !== null && $d->wilaya !== '' ? $d->wilaya : 'Non renseignée')
+                ->map(fn ($groupe, $libelle) => ['libelle' => $libelle, 'valeur' => $groupe->count()])
+                ->values()->all();
+        }
+
+        $graphiques = [
+            $this->graphique('Par statut', $statuts),
+            $this->graphique('Par nature', $natures),
+        ];
+
+        if ($parService) {
+            $graphiques[] = $this->graphique('Par service', $services);
+        }
+
+        $graphiques[] = $this->graphique('Par wilaya', $this->topEtAutres($wilayas, 5));
+
+        return $graphiques;
+    }
+
+    /**
+     * @param  list<array{libelle: string, valeur: int, couleur?: string|null}>  $parts
+     * @return array{titre: string, image: ?string, legende: list<array<string, mixed>>}
+     */
+    private function graphique(string $titre, array $parts): array
+    {
+        $serie = GraphiqueCirculaire::serie($parts);
+
+        return [
+            'titre'   => $titre,
+            'image'   => GraphiqueCirculaire::anneau($serie),
+            'legende' => GraphiqueCirculaire::legende($serie),
+        ];
+    }
+
+    /**
+     * @param  list<array{libelle: string, valeur: int}>  $parts
+     * @return list<array{libelle: string, valeur: int}>
+     */
+    private function topEtAutres(array $parts, int $limite): array
+    {
+        usort($parts, fn (array $a, array $b) => $b['valeur'] <=> $a['valeur']);
+        if (count($parts) <= $limite) {
+            return $parts;
+        }
+
+        $tete = array_slice($parts, 0, $limite);
+        $reste = array_sum(array_column(array_slice($parts, $limite), 'valeur'));
+        if ($reste > 0) {
+            $tete[] = ['libelle' => 'Autres', 'valeur' => $reste];
+        }
+
+        return $tete;
     }
 
     private function slugServiceExport(Utilisateur $utilisateur, array $filtres): string

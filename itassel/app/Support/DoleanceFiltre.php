@@ -35,6 +35,7 @@ class DoleanceFiltre
             'sens'              => ['nullable', 'string', 'in:asc,desc'],
             'par_page'          => ['nullable', 'integer', 'min:1', 'max:100'],
             'format'            => ['nullable', 'string', 'in:csv,pdf'],
+            'graphiques'        => ['nullable', 'boolean'],
         ];
 
         if ($avecPage) {
@@ -66,6 +67,10 @@ class DoleanceFiltre
             $data['statut'] = is_array($data['statut'])
                 ? array_map('intval', $data['statut'])
                 : (int) $data['statut'];
+        }
+
+        if ($request->exists('graphiques')) {
+            $data['graphiques'] = $request->boolean('graphiques');
         }
 
         return $data;

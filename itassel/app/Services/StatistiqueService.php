@@ -155,23 +155,23 @@ class StatistiqueService
         ]);
     }
 
-    public static function activite(): array
+    public static function activite(string $periode = 'aujourdhui'): array
     {
-        $debutJour = now()->startOfDay();
+        $depuis = static::debutActivite($periode);
         $driver = Schema::getConnection()->getDriverName();
         $exprJour = $driver === 'sqlite'
             ? "date(date_action)"
             : 'DATE(date_action)';
 
-        $aujourd = Journal::where('date_action', '>=', $debutJour);
+        $fenetre = Journal::where('date_action', '>=', $depuis);
+        $nbJours = $periode === '30j' ? 30 : 7;
 
         $parJour = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $jour = now()->subDays($i)->toDateString();
-            $parJour[$jour] = 0;
+        for ($i = $nbJours - 1; $i >= 0; $i--) {
+            $parJour[now()->subDays($i)->toDateString()] = 0;
         }
 
-        $totaux = Journal::where('date_action', '>=', now()->subDays(6)->startOfDay())
+        $totaux = Journal::where('date_action', '>=', now()->subDays($nbJours - 1)->startOfDay())
             ->selectRaw("{$exprJour} AS jour, COUNT(*) AS total")
             ->groupByRaw($exprJour)
             ->pluck('total', 'jour');
@@ -183,38 +183,77 @@ class StatistiqueService
             }
         }
 
-        $parCategorie = (clone $aujourd)
+        $totauxCategorie = (clone $fenetre)
             ->selectRaw('categorie, COUNT(*) AS total')
             ->groupBy('categorie')
             ->pluck('total', 'categorie');
 
+        $categories = config('itassel.journal.categories', []);
+        $comptesActifs = Utilisateur::where('actif', true)->whereNotNull('mot_de_passe_defini_le')->count();
+
+        $echecs = static::echecsConnexion(clone $fenetre)
+            ->orderByDesc('date_action')
+            ->limit(10)
+            ->get(['date_action', 'compte', 'adresse_ip', 'detail', 'action']);
+
+        $ipSuspectes = static::echecsConnexion(Journal::where('date_action', '>=', $depuis))
+            ->selectRaw('adresse_ip, COUNT(*) AS echecs, MAX(date_action) AS derniere_tentative')
+            ->groupBy('adresse_ip')
+            ->havingRaw('COUNT(*) >= 3')
+            ->orderByRaw('COUNT(*) DESC')
+            ->limit(5)
+            ->get();
+
         return [
-            'actions_aujourdhui'              => (clone $aujourd)->count(),
-            'connexions_reussies_aujourdhui'  => (clone $aujourd)->where('action', 'connexion')->where('resultat', 'succes')->count(),
-            'utilisateurs_distincts_aujourdhui' => (clone $aujourd)->whereNotNull('id_utilisateur')->distinct()->count('id_utilisateur'),
-            'echecs_connexion_aujourdhui'     => (clone $aujourd)->where('action', 'connexion')->where('resultat', 'echec')->count(),
-            'utilisateurs_actifs'             => Utilisateur::where('actif', true)->whereNotNull('mot_de_passe_defini_le')->count(),
+            'periode'                          => $periode,
+            'depuis'                           => $depuis->toDateString(),
+            'actions_aujourdhui'              => (clone $fenetre)->count(),
+            'connexions_reussies_aujourdhui'  => (clone $fenetre)->where('action', 'connexion')->where('resultat', 'succes')->count(),
+            'utilisateurs_distincts_aujourdhui' => (clone $fenetre)->whereNotNull('id_utilisateur')->distinct()->count('id_utilisateur'),
+            'echecs_connexion_aujourdhui'     => static::echecsConnexion(clone $fenetre)->count(),
+            'comptes_verrouilles'             => (clone $fenetre)->where('action', 'compte_verrouille')->count(),
+            'exports'                         => (clone $fenetre)->where('categorie', 'export')->count(),
+            'comptes_actifs'                  => $comptesActifs,
+            'utilisateurs_actifs'             => $comptesActifs,
             'comptes_desactives'              => Utilisateur::where('actif', false)->count(),
             'par_jour'                        => collect($parJour)->map(fn ($total, $jour) => [
                 'jour'  => $jour,
                 'total' => $total,
             ])->values(),
-            'par_categorie'                   => collect($parCategorie)->map(fn ($total, $categorie) => [
+            'par_categorie'                   => collect($categories)->map(fn (string $categorie) => [
                 'categorie' => $categorie,
-                'total'     => (int) $total,
+                'total'     => (int) ($totauxCategorie[$categorie] ?? 0),
             ])->values(),
-            'echecs_recents'                  => Journal::where('action', 'connexion')
-                ->where('resultat', 'echec')
-                ->orderByDesc('date_action')
-                ->limit(10)
-                ->get(['date_action', 'compte', 'adresse_ip', 'detail'])
-                ->map(fn (Journal $j) => [
-                    'date_action' => $j->date_action,
-                    'compte'      => $j->compte,
-                    'adresse_ip'  => $j->adresse_ip,
-                    'motif'       => $j->detail,
-                ])->values(),
+            'ip_suspectes'                    => $ipSuspectes->map(fn ($ligne) => [
+                'adresse_ip'         => $ligne->adresse_ip,
+                'echecs'             => (int) $ligne->echecs,
+                'derniere_tentative' => Carbon::parse($ligne->derniere_tentative)->toIso8601String(),
+            ])->values(),
+            'echecs_recents'                  => $echecs->map(fn (Journal $j) => [
+                'date_action' => $j->date_action,
+                'compte'      => $j->compte,
+                'adresse_ip'  => $j->adresse_ip,
+                'motif'       => $j->detail,
+                'action'      => $j->action,
+            ])->values(),
         ];
+    }
+
+    private static function debutActivite(string $periode): Carbon
+    {
+        return match ($periode) {
+            '7j'    => now()->subDays(7)->startOfDay(),
+            '30j'   => now()->subDays(30)->startOfDay(),
+            default => now()->startOfDay(),
+        };
+    }
+
+    private static function echecsConnexion(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q) {
+            $q->whereIn('action', ['connexion_echec', 'compte_verrouille'])
+                ->orWhere(fn (Builder $q) => $q->where('action', 'connexion')->where('resultat', 'echec'));
+        });
     }
 
     public static function tableauDeBord(Utilisateur $utilisateur, string $codePeriode = '6m'): array

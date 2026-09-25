@@ -140,6 +140,25 @@ Champs existants conservés, plus `derniere_connexion` et `connexion_precedente`
 - identique à l’actuel → 422 `mot_de_passe`
 - succès → `{ "message": "Mot de passe mis à jour." }`, autres jetons Sanctum révoqués
 
+## DELETE `/services/{id_service}`
+
+Permission de route : `services.gerer`. Réservé au Super administrateur (`estSuperAdmin` **et** `services.gerer`), même si la permission a été accordée à un autre rôle.
+
+Succès `200` : `{ "message": "Service supprimé." }`
+
+| Situation | Statut | `code` |
+|-----------|--------|--------|
+| Rôle autre que Super administrateur | 403 | `non_autorise` |
+| Le service a encore des doléances | 409 | `service_doleances` |
+| Des utilisateurs non supprimés y sont rattachés | 409 | `service_utilisateurs` |
+| Le service est cité dans une réaffectation (`id_service_propose` ou `id_service_destination`) | 409 | `service_reaffectations` |
+
+Aucune doléance n’est supprimée. Un utilisateur déjà supprimé (soft delete) est détaché (`id_service` à `null`) pour permettre la suppression du service vide. Journal : action `suppression_service`.
+
+## GET `/services`
+
+Chaque service inclut en plus `supprimable` (booléen) et `raison_blocage` (`null` ou l’un des codes `service_doleances`, `service_utilisateurs`, `service_reaffectations`).
+
 ## GET `/mes-notifications`
 
 Pagination Laravel. `par_page` optionnel (1–50, défaut 20). Chaque élément : `id_notification_app`, `evenement`, `titre`, `message`, `lue_le`, `created_at`, `doleance.reference`.

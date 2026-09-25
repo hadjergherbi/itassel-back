@@ -168,6 +168,8 @@ Route::prefix('admin')->group(function () {
             ->middleware('permission:services.gerer');
         Route::put('/services/{service}', [ServiceAdminController::class, 'update'])
             ->middleware('permission:services.gerer');
+        Route::delete('/services/{service}', [ServiceAdminController::class, 'destroy'])
+            ->middleware('permission:services.gerer');
         Route::put('/services/{service}/responsable', [ServiceAdminController::class, 'designerResponsable'])
             ->middleware('permission:services.gerer');
         Route::get('/services/{service}/responsables-possibles', [ServiceAdminController::class, 'responsablesPossibles'])
@@ -202,5 +204,8 @@ Route::prefix('admin')->group(function () {
             ->middleware('permission:journal.exporter');
         Route::get('/journaux/tableau-de-bord', [JournalAdminController::class, 'tableauDeBord'])
             ->middleware('permission:journal.voir');
+        Route::get('/journaux/{id}', [JournalAdminController::class, 'show'])
+            ->middleware('permission:journal.voir')
+            ->whereNumber('id');
     });
 });
