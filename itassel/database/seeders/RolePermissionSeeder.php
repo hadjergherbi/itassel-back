@@ -7,6 +7,10 @@ use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Installe les deux rôles (super_admin, admin_service) et la matrice des permissions.
+ * Sans ce seeder, l'authentification Sanctum n'aurait aucune habilitation à appliquer.
+ */
 class RolePermissionSeeder extends Seeder
 {
     public function run(): void

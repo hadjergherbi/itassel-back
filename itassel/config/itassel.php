@@ -6,6 +6,8 @@ return [
 
     'frontend_url' => env('ITASSEL_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:5173')),
 
+    'demo_password' => env('ITASSEL_DEMO_PASSWORD'),
+
     'jetons' => [
         'invitation_heures'         => 72,
         'reinitialisation_minutes'  => 60,
@@ -52,6 +54,15 @@ return [
 
     'journal' => [
         'categories' => ['connexion', 'doleance', 'affectation', 'utilisateur', 'parametre', 'export'],
+        'categories_libelles' => [
+            'connexion'       => 'Connexions',
+            'doleance'        => 'Doléances',
+            'affectation'     => 'Affectations',
+            'utilisateur'     => 'Utilisateurs',
+            'parametre'       => 'Paramètres',
+            'export'          => 'Exports',
+            'sans_categorie'  => 'Sans catégorie',
+        ],
         'sensibles'  => [
             'desactivation_utilisateur',
             'modification_permissions_role',

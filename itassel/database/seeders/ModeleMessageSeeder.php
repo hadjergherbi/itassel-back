@@ -5,6 +5,10 @@ namespace Database\Seeders;
 use App\Models\ModeleMessage;
 use Illuminate\Database\Seeder;
 
+/**
+ * Crée les modèles de réponse et de complément proposés aux administrateurs.
+ * Facilite la rédaction des messages types dès la première mise en service.
+ */
 class ModeleMessageSeeder extends Seeder
 {
     public function run(): void

@@ -16,6 +16,15 @@ class GraphiqueCirculaire
         '#6b7280',
     ];
 
+    public const PALETTE_SOBRE = [
+        '#006B3F',
+        '#3D5248',
+        '#5F6F66',
+        '#8A9A91',
+        '#A8B5AE',
+        '#C5CEC8',
+    ];
+
     /**
      * Anneau PNG en data URI. Null si le total est nul ou si GD est absent.
      *

@@ -10,6 +10,7 @@ use App\Models\Statut;
 use App\Models\Utilisateur;
 use App\Services\JournalService;
 use App\Services\StatistiqueService;
+use App\Support\ExportPdf;
 use App\Support\GraphiqueCirculaire;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Model;
@@ -361,8 +362,11 @@ class JournalAdminController extends Controller
                 ->all(),
             'genere_le'          => now()->format('d/m/Y H:i'),
             'agent'              => $request->user()->nomComplet(),
+            'titre_document'     => 'Journal des actions',
+            'reference'          => 'JRN-'.$fin,
         ])->setPaper('a4', 'landscape');
 
+        ExportPdf::preparer($pdf);
         $dompdf = $pdf->getDomPDF();
         $dompdf->render();
 
@@ -422,7 +426,10 @@ class JournalAdminController extends Controller
                 ->selectRaw("COALESCE(categorie, 'sans_categorie') as libelle, COUNT(*) as total")
                 ->groupBy('libelle')
                 ->get()
-                ->map(fn ($ligne) => ['libelle' => (string) $ligne->libelle, 'valeur' => (int) $ligne->total])
+                ->map(fn ($ligne) => [
+                    'libelle' => $this->libelleCategorie((string) $ligne->libelle),
+                    'valeur'  => (int) $ligne->total,
+                ])
                 ->all();
 
             $succes = (clone $requete)->where('resultat', 'succes')->count();
@@ -437,7 +444,10 @@ class JournalAdminController extends Controller
         } else {
             $categories = $lignes
                 ->groupBy(fn (Journal $journal) => $journal->categorie ?: 'sans_categorie')
-                ->map(fn ($groupe, $libelle) => ['libelle' => (string) $libelle, 'valeur' => $groupe->count()])
+                ->map(fn ($groupe, $libelle) => [
+                    'libelle' => $this->libelleCategorie((string) $libelle),
+                    'valeur'  => $groupe->count(),
+                ])
                 ->values()->all();
 
             $succes = $lignes->where('resultat', 'succes')->count();
@@ -501,13 +511,38 @@ class JournalAdminController extends Controller
      */
     private function graphiqueJournal(string $titre, array $parts): array
     {
+        $conserver = collect($parts)->contains(fn (array $part) => ! empty($part['couleur']));
         $serie = GraphiqueCirculaire::serie($parts);
+        if (! $conserver) {
+            foreach ($serie as $index => &$part) {
+                $part['couleur'] = GraphiqueCirculaire::PALETTE_SOBRE[$index] ?? '#8A9A91';
+            }
+            unset($part);
+        }
 
         return [
             'titre'   => $titre,
-            'image'   => GraphiqueCirculaire::anneau($serie),
+            'image'   => null,
             'legende' => GraphiqueCirculaire::legende($serie),
         ];
+    }
+
+    private function libelleCategorie(string $code): string
+    {
+        $map = config('itassel.journal.categories_libelles', []);
+
+        return $map[$code] ?? ucfirst(str_replace('_', ' ', $code));
+    }
+
+    private function libelleCategoriesFiltre(?string $valeur): string
+    {
+        if ($valeur === null || $valeur === '') {
+            return 'Toutes';
+        }
+
+        return collect(explode(',', $valeur))
+            ->map(fn (string $code) => $this->libelleCategorie(trim($code)))
+            ->implode(', ');
     }
 
     /**
@@ -535,7 +570,7 @@ class JournalAdminController extends Controller
 
         return [
             'periode'     => $periode,
-            'categorie'   => $filtres['categorie'] ?? 'Toutes',
+            'categorie'   => $this->libelleCategoriesFiltre($filtres['categorie'] ?? null),
             'utilisateur' => $utilisateur,
             'resultat'    => match ($filtres['resultat'] ?? null) {
                 'succes' => 'Succès',

@@ -36,5 +36,6 @@
         <env name="ITASSEL_FRONTEND_URL" value="http://localhost:5173"/>
         <env name="SANCTUM_EXPIRATION" value="480"/>
         <env name="CORS_ALLOWED_ORIGINS" value="http://localhost:5173"/>
+        <env name="ITASSEL_DEMO_PASSWORD" value="test-only-not-a-real-password"/>
     </php>
 </phpunit>

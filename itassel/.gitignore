@@ -18,6 +18,8 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/fonts/*.ufm
+/storage/fonts/installed-fonts.json
 /vendor
 Homestead.json
 Homestead.yaml

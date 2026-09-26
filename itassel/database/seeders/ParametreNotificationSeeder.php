@@ -5,6 +5,10 @@ namespace Database\Seeders;
 use App\Models\ParametreNotification;
 use Illuminate\Database\Seeder;
 
+/**
+ * Paramètre les canaux e-mail / application pour chaque événement de notification.
+ * Requis à l'installation pour que les alertes (dépôt, statut, complément, réaffectation) soient envoyées.
+ */
 class ParametreNotificationSeeder extends Seeder
 {
     public function run(): void

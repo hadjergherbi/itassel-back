@@ -13,6 +13,7 @@ use App\Services\JournalService;
 use App\Services\ReclassementService;
 use App\Support\Acces;
 use App\Support\DoleanceFiltre;
+use App\Support\ExportPdf;
 use App\Support\GraphiqueCirculaire;
 use App\Support\Periode;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -22,19 +23,6 @@ use Illuminate\Support\Str;
 
 class DoleanceAdminController extends Controller
 {
-    private const COULEURS_STATUT = [
-        'nouvelle'             => '#1a5f9e',
-        'en_cours'             => '#d97706',
-        'information_demandee' => '#7c3aed',
-        'resolue'              => '#006b3f',
-        'reponse_apportee'     => '#006b3f',
-        'hors_competence'      => '#6b7280',
-        'non_retenue'          => '#b42318',
-        'non_fondee'           => '#b42318',
-        'double'               => '#0f766e',
-        'cloturee'             => '#6b7280',
-    ];
-
     /**
      * GET /api/admin/statuts
      * Liste des statuts (filtres de la liste, menu « changer le statut »).
@@ -355,7 +343,11 @@ class DoleanceAdminController extends Controller
                 'graphiques'  => $synthese
                     ? $this->graphiquesDoleances($doleances, $base, $parService, $doleances->count() > 2000)
                     : [],
+                'titre_document' => 'Export des doléances',
+                'reference'      => 'DOL-'.$dateFin,
             ])->setPaper('a4', 'landscape');
+
+            ExportPdf::preparer($pdf);
 
             return $pdf->download($nomFichier);
         }
@@ -436,7 +428,6 @@ class DoleanceAdminController extends Controller
                 ->map(fn ($ligne) => [
                     'libelle' => $ligne->libelle,
                     'valeur'  => (int) $ligne->total,
-                    'couleur' => self::COULEURS_STATUT[$ligne->code] ?? null,
                 ])->all();
 
             $natures = (clone $base)
@@ -467,10 +458,9 @@ class DoleanceAdminController extends Controller
         } else {
             $statuts = $doleances
                 ->groupBy(fn ($d) => $d->statut?->code ?? '')
-                ->map(fn ($groupe, $code) => [
+                ->map(fn ($groupe) => [
                     'libelle' => $groupe->first()->statut?->libelle ?? 'Sans statut',
                     'valeur'  => $groupe->count(),
-                    'couleur' => self::COULEURS_STATUT[$code] ?? null,
                 ])->values()->all();
 
             $natures = $doleances
@@ -512,10 +502,14 @@ class DoleanceAdminController extends Controller
     private function graphique(string $titre, array $parts): array
     {
         $serie = GraphiqueCirculaire::serie($parts);
+        foreach ($serie as $index => &$part) {
+            $part['couleur'] = GraphiqueCirculaire::PALETTE_SOBRE[$index] ?? '#8A9A91';
+        }
+        unset($part);
 
         return [
             'titre'   => $titre,
-            'image'   => GraphiqueCirculaire::anneau($serie),
+            'image'   => null,
             'legende' => GraphiqueCirculaire::legende($serie),
         ];
     }

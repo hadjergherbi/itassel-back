@@ -8,6 +8,10 @@ use App\Models\Service;
 use App\Models\Statut;
 use Illuminate\Database\Seeder;
 
+/**
+ * Seeder principal : référentiels (statuts, services, natures, qualités) puis comptes démo, rôles et notifications.
+ * À lancer après les migrations pour qu'une installation neuve ait les données indispensables à l'application.
+ */
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
