@@ -16,8 +16,8 @@ class ReferentielController extends Controller
     public function index()
     {
         return response()->json([
-            'services' => Service::orderBy('nom_service')->get(['id_service', 'nom_service']),
-            'natures'  => Nature::orderBy('libelle')->get(['id_nature', 'libelle']),
+            'services' => Service::assignables()->orderBy('nom_service')->get(['id_service', 'nom_service']),
+            'natures'  => Nature::publiques()->orderBy('libelle')->get(['id_nature', 'libelle']),
             'qualites' => Qualite::selectionnables()->get(['id_qualite', 'libelle']),
         ]);
     }

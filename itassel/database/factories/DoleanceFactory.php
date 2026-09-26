@@ -17,7 +17,7 @@ class DoleanceFactory extends Factory
     public function definition(): array
     {
         return [
-            'reference'    => 'ITS-'.now()->year.'-'.str_pad((string) fake()->unique()->numberBetween(0, 9999), 4, '0', STR_PAD_LEFT),
+            'reference'    => 'ITS-'.now()->year.'-'.str_pad((string) fake()->unique()->numberBetween(0, 999999), 6, '0', STR_PAD_LEFT),
             'nom'          => fake()->lastName(),
             'prenom'       => fake()->firstName(),
             'email'        => fake()->safeEmail(),

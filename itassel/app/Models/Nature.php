@@ -21,6 +21,11 @@ class Nature extends Model
 
     protected $fillable = ['libelle', 'famille'];
 
+    public function scopePubliques($query)
+    {
+        return $query->whereRaw('LOWER(TRIM(libelle)) != ?', [mb_strtolower(self::TOUTES_NATURES)]);
+    }
+
     public function doleances()
     {
         return $this->hasMany(Doleance::class, 'id_nature', 'id_nature');

@@ -9,16 +9,10 @@ use App\Models\Doleance;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SuiviController extends Controller
 {
-    // Limites de sécurité, reprises du script SQL et des maquettes.
-    private const MAX_DEMANDES_CODE = 3;   // par doléance, par heure
-    private const MAX_ESSAIS_CODE   = 5;   // par code
-    private const DUREE_VALIDITE_MIN = 10; // minutes
-
     /**
      * POST /api/suivi/demander-code
      * Réponse volontairement IDENTIQUE que la référence existe ou non,
@@ -30,19 +24,22 @@ class SuiviController extends Controller
             'reference' => ['required', 'string', 'max:20'],
         ]);
 
+        $maxDemandes = (int) config('itassel.suivi.max_demandes_code', 3);
+        $dureeValidite = (int) config('itassel.suivi.duree_validite_min', 10);
+
         $doleance = Doleance::where('reference', $data['reference'])->first();
 
         if ($doleance) {
             $cleLimite = "suivi:demandes:{$doleance->id_doleance}";
             $demandes = Cache::get($cleLimite, 0);
 
-            if ($demandes < self::MAX_DEMANDES_CODE) {
+            if ($demandes < $maxDemandes) {
                 $codeEnClair = (string) random_int(100000, 999999);
 
                 CodeVerification::create([
                     'code_hash'       => hash('sha256', $codeEnClair),
                     'date_creation'   => now(),
-                    'date_expiration' => now()->addMinutes(self::DUREE_VALIDITE_MIN),
+                    'date_expiration' => now()->addMinutes($dureeValidite),
                     'nombre_essais'   => 0,
                     'utilise'         => false,
                     'id_doleance'     => $doleance->id_doleance,
@@ -53,20 +50,14 @@ class SuiviController extends Controller
                 NotificationService::envoyer(
                     $doleance,
                     'code_verification',
-                    new CodeVerificationMail($codeEnClair, $doleance->reference, self::DUREE_VALIDITE_MIN),
+                    new CodeVerificationMail($codeEnClair, $doleance->reference, $dureeValidite),
                 );
-
-                // Aide au développement : le code n'est écrit dans le journal que si
-                // APP_DEBUG=true. En production, APP_DEBUG doit valoir false.
-                if (config('app.debug')) {
-                    Log::info("Code de vérification (TEST) pour {$doleance->reference} : {$codeEnClair}");
-                }
             }
         }
 
         return response()->json([
             'message' => "Si cette référence existe, un code à usage unique a été envoyé "
-                       . "à l'adresse email du dossier. Il expire dans ".self::DUREE_VALIDITE_MIN." minutes.",
+                       . "à l'adresse email du dossier. Il expire dans ".$dureeValidite." minutes.",
         ]);
     }
 
@@ -115,11 +106,21 @@ class SuiviController extends Controller
     /**
      * GET /api/suivi/dossier
      */
+    public static function idDoleanceDepuisEntete(Request $request): ?int
+    {
+        $jeton = $request->header('X-Suivi-Token');
+        if (! is_string($jeton) || $jeton === '') {
+            return null;
+        }
+
+        $id = Cache::get("suivi:session:{$jeton}");
+
+        return is_numeric($id) ? (int) $id : null;
+    }
+
     public function consulterDossier(Request $request)
     {
-        $request->validate(['jeton_session' => ['required', 'string']]);
-
-        $idDoleance = Cache::get("suivi:session:{$request->jeton_session}");
+        $idDoleance = self::idDoleanceDepuisEntete($request);
 
         if (! $idDoleance) {
             return response()->json(['message' => 'Session expirée ou invalide.'], 401);

@@ -32,7 +32,7 @@ class CodeVerification extends Model
     public function estValide(): bool
     {
         return ! $this->utilise
-            && $this->nombre_essais < 5
+            && $this->nombre_essais < (int) config('itassel.suivi.max_essais_code', 5)
             && $this->date_expiration->isFuture();
     }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Doleance;
 use App\Models\Historique;
+use App\Models\Nature;
 use App\Models\PieceJointe;
 use App\Models\Service;
 use App\Models\Statut;
@@ -49,16 +50,33 @@ class DoleanceController extends Controller
             ], 422);
         }
 
+        $telephone = $request->input('telephone');
+        if (is_string($telephone)) {
+            $request->merge(['telephone' => preg_replace('/\s+/', '', $telephone)]);
+        }
+
+        $nomPersonne = "/^[\\p{L} '\\-]+$/u";
+
         $data = $request->validate([
-            'nom'          => ['required', 'string', 'max:60'],
-            'prenom'       => ['required', 'string', 'max:60'],
+            'nom'          => ['required', 'string', 'max:60', 'regex:'.$nomPersonne],
+            'prenom'       => ['required', 'string', 'max:60', 'regex:'.$nomPersonne],
             'email'        => ['required', 'email', 'max:120'],
-            'telephone'    => ['required', 'string', 'max:20'],
+            'telephone'    => ['required', 'string', 'max:20', 'regex:/^(\\+213|0)([5-7]\\d{8}|[2-4]\\d{7,8})$/'],
             'wilaya'       => ['required', 'string', 'max:40'],
             'objet'        => ['required', 'string', 'max:200'],
-            'description'  => ['required', 'string'],
-            'id_service'   => ['required', 'exists:services,id_service'],
-            'id_nature'    => ['required', 'exists:natures,id_nature'],
+            'description'  => ['required', 'string', 'max:5000'],
+            'id_service'   => [
+                'required',
+                Rule::exists('services', 'id_service')->where(
+                    fn ($q) => $q->whereRaw('LOWER(TRIM(nom_service)) != ?', [mb_strtolower(Service::TOUS_LES_DOMAINES)])
+                ),
+            ],
+            'id_nature'    => [
+                'required',
+                Rule::exists('natures', 'id_nature')->where(
+                    fn ($q) => $q->whereRaw('LOWER(TRIM(libelle)) != ?', [mb_strtolower(Nature::TOUTES_NATURES)])
+                ),
+            ],
             'id_qualite'   => [
                 'required',
                 Rule::exists('qualites', 'id_qualite')->where('selectionnable', true),
@@ -222,14 +240,14 @@ class DoleanceController extends Controller
     }
 
     /**
-     * Génère une référence unique au format ITS-AAAA-NNNN, comme sur les maquettes.
+     * Génère une référence unique au format ITS-AAAA-NNNNNN.
      */
     private function genererReference(): string
     {
         $annee = now()->year;
 
         do {
-            $numero = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            $numero = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $reference = "ITS-{$annee}-{$numero}";
         } while (Doleance::where('reference', $reference)->exists());
 

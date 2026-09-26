@@ -13,8 +13,8 @@ use RuntimeException;
 class NettoyerComptes extends Command
 {
     protected $signature = 'itassel:nettoyer-comptes
-        {--super=nour.belkacem@itassel.dz : Email du super administrateur à conserver}
-        {--service=amine.kaddour@itassel.dz : Email de l\'administrateur de service à conserver}
+        {--super= : Email du super administrateur à conserver}
+        {--service= : Email de l\'administrateur de service à conserver}
         {--dry-run : Affiche le plan sans rien écrire}
         {--force : Exécute sans confirmation}';
 
@@ -24,8 +24,8 @@ class NettoyerComptes extends Command
     {
         try {
             $contexte = $this->preparer(
-                (string) $this->option('super'),
-                (string) $this->option('service'),
+                $this->emailConserve('super'),
+                $this->emailConserve('service'),
             );
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
@@ -77,8 +77,8 @@ class NettoyerComptes extends Command
 
         try {
             $appliques = DB::transaction(fn () => $this->appliquer(
-                (string) $this->option('super'),
-                (string) $this->option('service'),
+                $this->emailConserve('super'),
+                $this->emailConserve('service'),
             ));
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
@@ -356,6 +356,16 @@ class NettoyerComptes extends Command
     private function compter(array $plan, string $cle): int
     {
         return count(array_filter($plan, fn (array $ligne) => ! empty($ligne[$cle])));
+    }
+
+    private function emailConserve(string $cle): string
+    {
+        $valeur = (string) $this->option($cle);
+        if ($valeur !== '') {
+            return $valeur;
+        }
+
+        return (string) config('itassel.demo_emails.'.$cle);
     }
 
     private function afficherResume(int $gardes, int $desactives, int $soft): void

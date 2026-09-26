@@ -34,7 +34,7 @@ class NettoyerComptesTest extends TestCase
         $this->assertDatabaseMissing('utilisateurs', ['email' => 'samira.bensalem@itassel.dz']);
 
         $sport = Service::where('nom_service', 'Sport')->first();
-        $this->assertSame('amine.kaddour@itassel.dz', $sport->responsable?->email);
+        $this->assertSame('demo.sport@itassel.dz', $sport->responsable?->email);
         $this->assertNull(Service::where('nom_service', 'Jeunesse')->first()->id_responsable);
         $this->assertNull(Service::where('nom_service', 'Ressources humaines')->first()->id_responsable);
     }
@@ -86,8 +86,8 @@ class NettoyerComptesTest extends TestCase
 
         $this->assertSame(1, Utilisateur::where('role', 'super_admin')->where('actif', true)->count());
         $this->assertSame(1, Utilisateur::where('role', 'admin_service')->where('actif', true)->count());
-        $this->assertTrue(Utilisateur::where('email', 'nour.belkacem@itassel.dz')->value('actif'));
-        $this->assertTrue(Utilisateur::where('email', 'amine.kaddour@itassel.dz')->value('actif'));
+        $this->assertTrue(Utilisateur::where('email', 'demo.admin@itassel.dz')->value('actif'));
+        $this->assertTrue(Utilisateur::where('email', 'demo.sport@itassel.dz')->value('actif'));
 
         $lie = Utilisateur::withTrashed()->where('email', 'farid.merabet@itassel.dz')->first();
         $this->assertFalse($lie->actif);
@@ -104,7 +104,7 @@ class NettoyerComptesTest extends TestCase
         $this->assertSame($idResponsable, $doleance->id_responsable);
         $this->assertNull($jeunesse->fresh()->id_responsable);
         $this->assertSame(
-            'amine.kaddour@itassel.dz',
+            'demo.sport@itassel.dz',
             Service::where('nom_service', 'Sport')->first()->responsable?->email
         );
 
@@ -141,40 +141,40 @@ class NettoyerComptesTest extends TestCase
         ])->assertFailed()->expectsOutputToContain('introuvable');
         $this->assertTrue($intrus->fresh()->actif);
 
-        $nour = Utilisateur::where('email', 'nour.belkacem@itassel.dz')->first();
-        $nour->actif = false;
-        $nour->save();
+        $super = Utilisateur::where('email', 'demo.admin@itassel.dz')->first();
+        $super->actif = false;
+        $super->save();
         $this->artisan('itassel:nettoyer-comptes', ['--force' => true])
             ->assertFailed()
             ->expectsOutputToContain("n'est pas actif");
         $this->assertTrue($intrus->fresh()->actif);
-        $nour->actif = true;
-        $nour->save();
+        $super->actif = true;
+        $super->save();
 
-        $amine = Utilisateur::where('email', 'amine.kaddour@itassel.dz')->first();
-        $amine->role = 'super_admin';
-        $amine->save();
+        $service = Utilisateur::where('email', 'demo.sport@itassel.dz')->first();
+        $service->role = 'super_admin';
+        $service->save();
         $this->artisan('itassel:nettoyer-comptes', ['--force' => true])
             ->assertFailed()
             ->expectsOutputToContain("n'a pas le rôle admin_service");
         $this->assertTrue($intrus->fresh()->actif);
-        $this->assertTrue($nour->fresh()->actif);
+        $this->assertTrue($super->fresh()->actif);
     }
 
     public function test_impossible_de_retirer_le_dernier_super_administrateur(): void
     {
-        $nour = Utilisateur::where('email', 'nour.belkacem@itassel.dz')->first();
+        $super = Utilisateur::where('email', 'demo.admin@itassel.dz')->first();
         $this->assertTrue(NettoyerComptes::retireraitLeDernierSuperAdmin(
-            $nour->id_utilisateur,
-            [$nour->id_utilisateur]
+            $super->id_utilisateur,
+            [$super->id_utilisateur]
         ));
 
         $intrus = $this->superAdmin(['email' => 'intrus@itassel.dz']);
 
         $this->artisan('itassel:nettoyer-comptes', ['--force' => true])->assertSuccessful();
 
-        $this->assertTrue($nour->fresh()->actif);
-        $this->assertNull($nour->fresh()->supprime_le);
+        $this->assertTrue($super->fresh()->actif);
+        $this->assertNull($super->fresh()->supprime_le);
         $this->assertSame(1, Utilisateur::where('role', 'super_admin')->where('actif', true)->count());
 
         $intrus = Utilisateur::withTrashed()->find($intrus->id_utilisateur);

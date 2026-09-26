@@ -8,6 +8,17 @@ return [
 
     'demo_password' => env('ITASSEL_DEMO_PASSWORD'),
 
+    'demo_emails' => [
+        'super'   => 'demo.admin@itassel.dz',
+        'service' => 'demo.sport@itassel.dz',
+    ],
+
+    'suivi' => [
+        'max_demandes_code'  => 3,
+        'max_essais_code'    => 5,
+        'duree_validite_min' => 10,
+    ],
+
     'jetons' => [
         'invitation_heures'         => 72,
         'reinitialisation_minutes'  => 60,
@@ -133,6 +144,7 @@ return [
         'doleances.repondre'       => ['libelle' => 'Répondre au demandeur', 'groupe' => 'doleances', 'defaults' => ['super_admin', 'admin_service']],
         'doleances.notes'          => ['libelle' => 'Ajouter une note interne', 'groupe' => 'doleances', 'defaults' => ['super_admin', 'admin_service']],
         'doleances.reclasser'      => ['libelle' => 'Reclasser une doléance', 'groupe' => 'doleances', 'defaults' => ['super_admin']],
+        'pieces_jointes.telecharger' => ['libelle' => 'Télécharger les pièces jointes', 'groupe' => 'doleances', 'defaults' => ['super_admin']],
         'complements.demander'     => ['libelle' => 'Demander un complément', 'groupe' => 'complements', 'defaults' => ['super_admin', 'admin_service']],
         'complements.annuler'      => ['libelle' => 'Annuler un complément', 'groupe' => 'complements', 'defaults' => ['super_admin', 'admin_service']],
         'complements.examiner'     => ['libelle' => 'Examiner un complément', 'groupe' => 'complements', 'defaults' => ['super_admin', 'admin_service']],

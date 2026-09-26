@@ -76,6 +76,7 @@ class RolePermissionSeeder extends Seeder
             'doleances.repondre'         => ['libelle' => 'Répondre au demandeur', 'groupe' => 'doleances', 'defaults' => [$s, $a]],
             'doleances.notes'            => ['libelle' => 'Ajouter une note interne', 'groupe' => 'doleances', 'defaults' => [$s, $a]],
             'doleances.reclasser'        => ['libelle' => 'Reclasser une doléance', 'groupe' => 'doleances', 'defaults' => [$s]],
+            'pieces_jointes.telecharger' => ['libelle' => 'Télécharger les pièces jointes', 'groupe' => 'doleances', 'defaults' => [$s]],
             'complements.demander'       => ['libelle' => 'Demander un complément', 'groupe' => 'complements', 'defaults' => [$s, $a]],
             'complements.annuler'        => ['libelle' => 'Annuler un complément', 'groupe' => 'complements', 'defaults' => [$s, $a]],
             'complements.examiner'       => ['libelle' => 'Examiner un complément', 'groupe' => 'complements', 'defaults' => [$s, $a]],

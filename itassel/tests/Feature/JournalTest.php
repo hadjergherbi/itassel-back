@@ -218,7 +218,7 @@ class JournalTest extends TestCase
         $this->assertSame('ITS-2026-7711', $ligne['cible']['libelle']);
         $this->assertSame('/admin/doleances/ITS-2026-7711', $ligne['cible']['lien']);
         $this->assertSame('ITS-2026-7711 : en_cours → resolue', $ligne['detail']);
-        $this->assertSame('ITS-2026-7711 : En cours → Résolu', $ligne['detail_lisible']);
+        $this->assertSame('ITS-2026-7711 : En cours → Résolue', $ligne['detail_lisible']);
     }
 
     public function test_la_cible_d_un_service_supprime_est_nulle(): void

@@ -103,7 +103,7 @@ class IssuesWorkflowTest extends TestCase
         $jeton = 'session-test';
         cache()->put("suivi:session:{$jeton}", $doleance->id_doleance, 600);
 
-        $this->getJson('/api/suivi/dossier?jeton_session='.$jeton)
+        $this->getJson('/api/suivi/dossier', ['X-Suivi-Token' => $jeton])
             ->assertOk()
             ->assertJsonPath('statut.message_citoyen', 'Une réponse est disponible.')
             ->assertJsonStructure(['organisme_competent']);

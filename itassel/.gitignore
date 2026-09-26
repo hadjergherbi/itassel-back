@@ -20,7 +20,12 @@
 /storage/pail
 /storage/fonts/*.ufm
 /storage/fonts/installed-fonts.json
+/storage/logs/*.log
+/storage/app/private/*
+!/storage/app/private/.gitignore
+/storage/framework/views/*.php
 /vendor
+database/database.sqlite
 Homestead.json
 Homestead.yaml
 Thumbs.db

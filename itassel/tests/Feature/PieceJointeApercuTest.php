@@ -84,6 +84,19 @@ class PieceJointeApercuTest extends TestCase
             ->assertStatus(401);
     }
 
+    public function test_admin_service_peut_apercu_mais_pas_telecharger(): void
+    {
+        $sport = Service::where('nom_service', 'Sport')->first() ?? $this->serviceUsuel();
+        $piece = $this->pieceSurDisque(['id_service' => $sport->id_service]);
+
+        $this->connecter($this->adminService($sport))
+            ->get("/api/admin/pieces-jointes/{$piece->id_piece}/apercu")
+            ->assertOk();
+
+        $this->getJson("/api/admin/pieces-jointes/{$piece->id_piece}/telecharger")
+            ->assertForbidden();
+    }
+
     public function test_telecharger_reste_en_attachment(): void
     {
         $piece = $this->pieceSurDisque(['nom_fichier' => 'rapport.pdf', 'type' => 'pdf']);

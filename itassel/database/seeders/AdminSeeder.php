@@ -50,7 +50,7 @@ class AdminSeeder extends Seeder
 
     private function motDePasseDemo(): string
     {
-        $motDePasse = env('ADMIN_DEMO_PASSWORD');
+        $motDePasse = config('itassel.demo_password');
         if (is_string($motDePasse) && $motDePasse !== '') {
             return $motDePasse;
         }
@@ -60,7 +60,7 @@ class AdminSeeder extends Seeder
         }
 
         throw new RuntimeException(
-            'ADMIN_DEMO_PASSWORD est obligatoire hors des environnements local et testing.'
+            'ITASSEL_DEMO_PASSWORD est obligatoire hors des environnements local et testing.'
         );
     }
 

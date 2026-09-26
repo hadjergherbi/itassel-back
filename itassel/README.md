@@ -47,7 +47,7 @@ php artisan migrate
 php artisan db:seed
 ```
 
-Pour les comptes de démonstration, définissez `ADMIN_DEMO_PASSWORD` dans `.env` (obligatoire hors `local` et `testing`).
+Pour les comptes de démonstration, définissez `ITASSEL_DEMO_PASSWORD` dans `.env` (obligatoire hors `local` et `testing`).
 
 ## Lancer en développement
 

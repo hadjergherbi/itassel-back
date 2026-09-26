@@ -10,7 +10,6 @@ use App\Models\PieceJointe;
 use App\Models\Statut;
 use App\Services\NotificationDispatcher;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class SuiviComplementController extends Controller
@@ -22,12 +21,11 @@ class SuiviComplementController extends Controller
     public function repondre(Request $request)
     {
         $data = $request->validate([
-            'jeton_session' => ['required', 'string'],
             'message'       => ['required', 'string'],
             'piece_jointe'  => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ]);
 
-        $idDoleance = Cache::get("suivi:session:{$data['jeton_session']}");
+        $idDoleance = SuiviController::idDoleanceDepuisEntete($request);
 
         if (! $idDoleance) {
             return response()->json(['message' => 'Session expirée ou invalide.'], 401);

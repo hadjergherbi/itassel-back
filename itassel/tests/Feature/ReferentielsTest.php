@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Doleance;
+use App\Models\Nature;
 use App\Models\Qualite;
 use App\Models\Service;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,12 +20,35 @@ class ReferentielsTest extends TestCase
         $this->preparerReferentiels();
     }
 
-    public function test_le_formulaire_inclut_tous_les_domaines(): void
+    public function test_le_formulaire_n_expose_pas_les_valeurs_transverses(): void
     {
-        $noms = collect($this->getJson('/api/referentiels')->assertOk()->json('services'))
-            ->pluck('nom_service');
+        $json = $this->getJson('/api/referentiels')->assertOk();
 
-        $this->assertContains(Service::TOUS_LES_DOMAINES, $noms);
+        $this->assertNotContains(Service::TOUS_LES_DOMAINES, collect($json->json('services'))->pluck('nom_service'));
+        $this->assertNotContains(Nature::TOUTES_NATURES, collect($json->json('natures'))->pluck('libelle'));
+    }
+
+    public function test_le_depot_refuse_les_valeurs_transverses_et_un_telephone_invalide(): void
+    {
+        $transverse = Service::firstOrCreate(['nom_service' => Service::TOUS_LES_DOMAINES]);
+        $toutes = Nature::firstOrCreate(
+            ['libelle' => Nature::TOUTES_NATURES],
+            ['famille' => 'reclamation']
+        );
+
+        $this->postJson('/api/doleances', $this->champsDepotPublic([
+            'id_service' => $transverse->id_service,
+        ]))->assertUnprocessable();
+
+        $this->postJson('/api/doleances', $this->champsDepotPublic([
+            'id_nature' => $toutes->id_nature,
+        ]))->assertUnprocessable();
+
+        $this->postJson('/api/doleances', $this->champsDepotPublic([
+            'telephone' => '12345',
+        ]))->assertUnprocessable();
+
+        $this->assertSame(0, Doleance::count());
     }
 
     public function test_le_formulaire_expose_les_qualites_officielles_dans_l_ordre(): void

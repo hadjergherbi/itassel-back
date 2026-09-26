@@ -128,6 +128,7 @@ Route::prefix('admin')->group(function () {
             ->middleware('throttle:60,1')
             ->whereNumber('id');
         Route::get('/pieces-jointes/{id}/telecharger', [PieceJointeController::class, 'telecharger'])
+            ->middleware('permission:pieces_jointes.telecharger')
             ->whereNumber('id');
         Route::post('/notifications/{id}/renvoyer', [NotificationAdminController::class, 'renvoyer'])
             ->middleware('permission:notifications.renvoyer')

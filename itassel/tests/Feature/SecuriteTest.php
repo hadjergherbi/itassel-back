@@ -171,11 +171,12 @@ class SecuriteTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(['jeton']);
 
-        $this->postJson('/api/doleances', $this->champsDepotPublic())
+        $reponse = $this->postJson('/api/doleances', $this->champsDepotPublic())
             ->assertCreated()
             ->assertJsonStructure(['reference', 'message']);
 
         $this->assertSame(1, Doleance::count());
+        $this->assertMatchesRegularExpression('/^ITS-\d{4}-\d{6}$/', $reponse->json('reference'));
     }
 
     public function test_les_en_tetes_de_securite_sont_presents_sur_json_et_export(): void
