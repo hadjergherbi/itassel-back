@@ -80,7 +80,9 @@ class ParametreAdminController extends Controller
 
     public function qualites()
     {
-        return response()->json(Qualite::orderBy('libelle')->get());
+        return response()->json(
+            Qualite::orderBy('ordre')->orderBy('id_qualite')->get()
+        );
     }
 
     public function creerQualite(Request $request)
@@ -89,7 +91,11 @@ class ParametreAdminController extends Controller
             'libelle' => ['required', 'string', 'max:80', 'unique:qualites,libelle'],
         ]);
 
-        $qualite = Qualite::create($data);
+        $qualite = Qualite::create([
+            'libelle'        => $data['libelle'],
+            'selectionnable' => true,
+            'ordre'          => (int) Qualite::max('ordre') + 10,
+        ]);
         JournalService::action($request, $request->user(), 'creation_qualite', $qualite->libelle, $qualite);
 
         return response()->json(['message' => 'Qualité créée.', 'qualite' => $qualite], 201);

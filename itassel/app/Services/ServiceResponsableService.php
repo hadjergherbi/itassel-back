@@ -15,6 +15,12 @@ class ServiceResponsableService
 {
     public static function designer(Service $service, ?Utilisateur $responsable, Utilisateur $acteur, Request $request): Service
     {
+        if (Service::estTousLesDomaines($service->nom_service)) {
+            throw ValidationException::withMessages([
+                'id_service' => ['Ce domaine ne peut pas être géré par un administrateur de service.'],
+            ]);
+        }
+
         if ($responsable) {
             if (! $responsable->actif
                 || $responsable->role !== 'admin_service'

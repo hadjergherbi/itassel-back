@@ -28,12 +28,15 @@ class ServiceAdminController extends Controller
             ->orderBy('nom_service')
             ->get();
 
-        $alertes = $services->whereNull('id_responsable')->map(fn (Service $s) => [
-            'id_service'  => $s->id_service,
-            'nom'         => $s->nom_service,
-            'nom_service' => $s->nom_service,
-            'code'        => 'sans_responsable',
-        ])->values();
+        $alertes = $services
+            ->whereNull('id_responsable')
+            ->reject(fn (Service $s) => Service::estTousLesDomaines($s->nom_service))
+            ->map(fn (Service $s) => [
+                'id_service'  => $s->id_service,
+                'nom'         => $s->nom_service,
+                'nom_service' => $s->nom_service,
+                'code'        => 'sans_responsable',
+            ])->values();
 
         return response()->json([
             'services' => $services->map(function (Service $s) {
@@ -52,7 +55,10 @@ class ServiceAdminController extends Controller
                     'ouvertes'        => $s->ouvertes,
                     'supprimable'     => $raison === null,
                     'raison_blocage'  => $raison,
-                    'alertes'         => $s->id_responsable ? [] : [['code' => 'sans_responsable']],
+                    'assignable'      => ! Service::estTousLesDomaines($s->nom_service),
+                    'alertes'         => ($s->id_responsable || Service::estTousLesDomaines($s->nom_service))
+                        ? []
+                        : [['code' => 'sans_responsable']],
                 ];
             })->values(),
             'alertes' => $alertes,

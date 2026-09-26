@@ -77,7 +77,7 @@ class UtilisateurAdminController extends Controller
             'nom'        => ['sometimes', 'string', 'max:80'],
             'prenom'     => ['sometimes', 'string', 'max:80'],
             'email'      => ['sometimes', 'email', 'max:120', Rule::unique('utilisateurs', 'email')->ignore($utilisateur->id_utilisateur, 'id_utilisateur')],
-            'id_service' => ['nullable', 'integer', 'exists:services,id_service'],
+            'id_service' => ['nullable', ...Service::regleIdAssignable()],
         ]);
 
         try {

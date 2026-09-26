@@ -3,7 +3,9 @@
 namespace App\Support;
 
 use App\Models\Doleance;
+use App\Models\Nature;
 use App\Models\Reaffectation;
+use App\Models\Service;
 use App\Models\Utilisateur;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -13,15 +15,25 @@ class Acces
     /**
      * Doléances qu'un utilisateur a le droit de voir :
      * - Super administrateur : toutes ;
-     * - administrateur de service : uniquement celles de son service.
+     * - administrateur de service : celles de son service, plus celles
+     *   dont la nature est « Toutes natures », plus celles rattachées
+     *   au domaine « Tous les domaines » (visibles de tous les services).
      */
     public static function doleancesVisibles(Utilisateur $utilisateur): Builder
     {
         $query = Doleance::query();
 
         if (! $utilisateur->estSuperAdmin()) {
-            // Un administrateur sans service ne voit rien.
-            $query->where('id_service', $utilisateur->id_service ?? 0);
+            $idService = $utilisateur->id_service ?? 0;
+            $query->where(function (Builder $q) use ($idService) {
+                $q->where('id_service', $idService)
+                    ->orWhereHas('nature', function (Builder $n) {
+                        $n->whereRaw('LOWER(TRIM(libelle)) = ?', [mb_strtolower(Nature::TOUTES_NATURES)]);
+                    })
+                    ->orWhereHas('service', function (Builder $s) {
+                        $s->whereRaw('LOWER(TRIM(nom_service)) = ?', [mb_strtolower(Service::TOUS_LES_DOMAINES)]);
+                    });
+            });
         }
 
         return $query;

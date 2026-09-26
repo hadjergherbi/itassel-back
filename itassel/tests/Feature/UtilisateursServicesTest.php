@@ -23,7 +23,7 @@ class UtilisateursServicesTest extends TestCase
     public function test_creation_et_desactivation_avec_ou_sans_remplacant(): void
     {
         $acteur = $this->connecter($this->superAdmin());
-        $service = Service::first();
+        $service = Service::assignables()->orderBy('id_service')->first();
 
         $this->postJson('/api/admin/utilisateurs', [
             'nom' => 'Kaci',
@@ -110,7 +110,7 @@ class UtilisateursServicesTest extends TestCase
     public function test_designation_propage_aux_dossiers_sans_responsable(): void
     {
         $this->connecter($this->superAdmin());
-        $service = Service::first();
+        $service = Service::assignables()->orderBy('id_service')->first();
         $service->update(['id_responsable' => null]);
         $admin = $this->adminService($service);
         $doleance = $this->doleance(['id_service' => $service->id_service, 'id_responsable' => null]);
@@ -121,5 +121,25 @@ class UtilisateursServicesTest extends TestCase
 
         $this->assertSame($admin->id_utilisateur, $doleance->fresh()->id_responsable);
         $this->assertSame($service->id_service, $doleance->fresh()->id_service);
+    }
+
+    public function test_tous_les_domaines_n_est_pas_assignable_a_un_admin(): void
+    {
+        $this->connecter($this->superAdmin());
+        $transverse = Service::firstOrCreate(['nom_service' => Service::TOUS_LES_DOMAINES]);
+
+        $this->postJson('/api/admin/utilisateurs', [
+            'nom'        => 'Transverse',
+            'prenom'     => 'Admin',
+            'email'      => 'transverse@itassel.test',
+            'role'       => 'admin_service',
+            'id_service' => $transverse->id_service,
+        ])->assertUnprocessable();
+
+        $services = $this->getJson('/api/admin/services')->assertOk()->json('services');
+        $ligne = collect($services)->firstWhere('nom_service', Service::TOUS_LES_DOMAINES);
+        $this->assertNotNull($ligne);
+        $this->assertFalse($ligne['assignable']);
+        $this->assertSame([], $ligne['alertes']);
     }
 }

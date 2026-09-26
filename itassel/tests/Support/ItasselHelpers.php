@@ -41,7 +41,8 @@ trait ItasselHelpers
 
     protected function adminService(?Service $service = null, array $extra = []): Utilisateur
     {
-        $service ??= Service::first() ?? Service::factory()->create();
+        $service ??= Service::assignables()->orderBy('id_service')->first()
+            ?? Service::factory()->create();
 
         $utilisateur = new Utilisateur();
         $utilisateur->fill([
@@ -73,6 +74,21 @@ trait ItasselHelpers
         return Crypt::encryptString((string) now()->subSeconds($ageSecondes)->timestamp);
     }
 
+    protected function serviceUsuel(): Service
+    {
+        return Service::where('nom_service', 'Sport')->first()
+            ?? Service::assignables()->orderBy('id_service')->firstOrFail();
+    }
+
+    protected function natureUsuelle(): Nature
+    {
+        return Nature::where('libelle', 'Réclamation')->first()
+            ?? Nature::where('famille', 'reclamation')
+                ->whereRaw('LOWER(TRIM(libelle)) != ?', [mb_strtolower(Nature::TOUTES_NATURES)])
+                ->orderBy('id_nature')
+                ->firstOrFail();
+    }
+
     protected function champsDepotPublic(array $extra = []): array
     {
         return array_merge([
@@ -83,8 +99,8 @@ trait ItasselHelpers
             'wilaya'           => 'Alger',
             'objet'            => 'Objet de test',
             'description'      => 'Description suffisamment longue.',
-            'id_service'       => Service::first()->id_service,
-            'id_nature'        => Nature::first()->id_nature,
+            'id_service'       => $this->serviceUsuel()->id_service,
+            'id_nature'        => $this->natureUsuelle()->id_nature,
             'id_qualite'       => Qualite::first()->id_qualite,
             'jeton_formulaire' => $this->jetonFormulaireValide(),
         ], $extra);
@@ -96,9 +112,9 @@ trait ItasselHelpers
         unset($attrs['statut']);
 
         return Doleance::factory()->create(array_merge([
-            'id_service' => $attrs['id_service'] ?? Service::first()->id_service,
+            'id_service' => $attrs['id_service'] ?? $this->serviceUsuel()->id_service,
             'id_statut'  => Statut::parCode($code)->id_statut,
-            'id_nature'  => $attrs['id_nature'] ?? Nature::where('famille', 'reclamation')->first()->id_nature,
+            'id_nature'  => $attrs['id_nature'] ?? $this->natureUsuelle()->id_nature,
             'id_qualite' => $attrs['id_qualite'] ?? Qualite::first()->id_qualite,
         ], $attrs));
     }

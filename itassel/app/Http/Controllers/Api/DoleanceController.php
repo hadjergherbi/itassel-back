@@ -15,6 +15,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class DoleanceController extends Controller
@@ -58,7 +59,10 @@ class DoleanceController extends Controller
             'description'  => ['required', 'string'],
             'id_service'   => ['required', 'exists:services,id_service'],
             'id_nature'    => ['required', 'exists:natures,id_nature'],
-            'id_qualite'   => ['required', 'exists:qualites,id_qualite'],
+            'id_qualite'   => [
+                'required',
+                Rule::exists('qualites', 'id_qualite')->where('selectionnable', true),
+            ],
             'piece_jointe' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // 5 Mo
         ]);
 

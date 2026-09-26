@@ -13,7 +13,9 @@ class QualiteFactory extends Factory
     public function definition(): array
     {
         return [
-            'libelle' => fake()->unique()->words(2, true),
+            'libelle'        => fake()->unique()->words(2, true),
+            'selectionnable' => true,
+            'ordre'          => 0,
         ];
     }
 }

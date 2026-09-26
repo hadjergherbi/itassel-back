@@ -52,6 +52,7 @@ class DatabaseSeeder extends Seeder
         foreach (['Sport', 'Jeunesse', 'Ressources humaines'] as $nom) {
             Service::firstOrCreate(['nom_service' => $nom]);
         }
+        Service::firstOrCreate(['nom_service' => Service::TOUS_LES_DOMAINES]);
 
         $natures = [
             ['Réclamation', 'reclamation'],
@@ -63,8 +64,19 @@ class DatabaseSeeder extends Seeder
             Nature::updateOrCreate(['libelle' => $libelle], ['famille' => $famille]);
         }
 
-        foreach (['Citoyen', 'Association', 'Sportif', 'Parent'] as $libelle) {
-            Qualite::firstOrCreate(['libelle' => $libelle]);
+        Nature::firstOrCreate(
+            ['libelle' => Nature::TOUTES_NATURES],
+            ['famille' => 'reclamation']
+        );
+
+        foreach (Qualite::LIBELLES as $index => $libelle) {
+            Qualite::updateOrCreate(
+                ['libelle' => $libelle],
+                [
+                    'selectionnable' => true,
+                    'ordre'          => ($index + 1) * 10,
+                ]
+            );
         }
 
         $this->call(AdminSeeder::class);

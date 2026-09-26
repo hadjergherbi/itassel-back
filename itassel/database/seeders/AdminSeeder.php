@@ -66,15 +66,7 @@ class AdminSeeder extends Seeder
 
     private function enregistrer(array $donnees): Utilisateur
     {
-        $utilisateur = Utilisateur::withTrashed()->firstOrCreate(
-            ['email' => $donnees['email']],
-            [
-                'nom'        => $donnees['nom'],
-                'prenom'     => $donnees['prenom'],
-                'actif'      => true,
-                'id_service' => $donnees['id_service'],
-            ]
-        );
+        $utilisateur = Utilisateur::withTrashed()->firstOrNew(['email' => $donnees['email']]);
 
         if ($utilisateur->trashed()) {
             $utilisateur->restore();

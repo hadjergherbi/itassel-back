@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Nature;
 use App\Models\Reaffectation;
 use App\Models\Service;
 use App\Models\Statut;
@@ -55,6 +56,83 @@ class ListesTableauxTest extends TestCase
 
         $this->assertStringContainsString('ITS-2026-0001', $csv);
         $this->assertStringNotContainsString('ITS-2026-9999', $csv);
+    }
+
+    public function test_un_admin_de_service_voit_ses_doleances_et_toutes_natures(): void
+    {
+        $sport = Service::where('nom_service', 'Sport')->first();
+        $jeunesse = Service::where('nom_service', 'Jeunesse')->first();
+        $admin = $this->adminService($sport);
+        $toutes = Nature::firstOrCreate(
+            ['libelle' => Nature::TOUTES_NATURES],
+            ['famille' => 'reclamation']
+        );
+        $reclamation = $this->natureUsuelle();
+
+        $mienne = $this->doleance([
+            'id_service' => $sport->id_service,
+            'id_nature'  => $reclamation->id_nature,
+            'reference'  => 'ITS-2026-5101',
+        ]);
+        $transversale = $this->doleance([
+            'id_service' => $jeunesse->id_service,
+            'id_nature'  => $toutes->id_nature,
+            'reference'  => 'ITS-2026-5102',
+        ]);
+        $autre = $this->doleance([
+            'id_service' => $jeunesse->id_service,
+            'id_nature'  => $reclamation->id_nature,
+            'reference'  => 'ITS-2026-5103',
+        ]);
+
+        $this->connecter($admin);
+        $references = collect($this->getJson('/api/admin/doleances')->assertOk()->json('doleances.data'))
+            ->pluck('reference');
+
+        $this->assertContains($mienne->reference, $references);
+        $this->assertContains($transversale->reference, $references);
+        $this->assertNotContains($autre->reference, $references);
+
+        $tableau = $this->getJson('/api/admin/tableau-de-bord?periode=6m')->assertOk()->json();
+        $this->assertSame(2, $tableau['indicateurs']['total']);
+        $this->assertSame(2, $tableau['indicateurs']['nouvelles']);
+    }
+
+    public function test_un_admin_de_service_voit_les_doleances_tous_les_domaines(): void
+    {
+        $sport = Service::where('nom_service', 'Sport')->first();
+        $jeunesse = Service::where('nom_service', 'Jeunesse')->first();
+        $transverse = Service::firstOrCreate(['nom_service' => Service::TOUS_LES_DOMAINES]);
+        $admin = $this->adminService($sport);
+        $reclamation = $this->natureUsuelle();
+
+        $mienne = $this->doleance([
+            'id_service' => $sport->id_service,
+            'id_nature'  => $reclamation->id_nature,
+            'reference'  => 'ITS-2026-5201',
+        ]);
+        $tousDomaines = $this->doleance([
+            'id_service' => $transverse->id_service,
+            'id_nature'  => $reclamation->id_nature,
+            'reference'  => 'ITS-2026-5202',
+        ]);
+        $autre = $this->doleance([
+            'id_service' => $jeunesse->id_service,
+            'id_nature'  => $reclamation->id_nature,
+            'reference'  => 'ITS-2026-5203',
+        ]);
+
+        $this->connecter($admin);
+        $references = collect($this->getJson('/api/admin/doleances')->assertOk()->json('doleances.data'))
+            ->pluck('reference');
+
+        $this->assertContains($mienne->reference, $references);
+        $this->assertContains($tousDomaines->reference, $references);
+        $this->assertNotContains($autre->reference, $references);
+
+        $tableau = $this->getJson('/api/admin/tableau-de-bord?periode=6m')->assertOk()->json();
+        $this->assertSame(2, $tableau['indicateurs']['total']);
+        $this->assertSame(2, $tableau['indicateurs']['nouvelles']);
     }
 
     public function test_vue_globale_a_traiter_egale_nouvelles(): void
