@@ -22,7 +22,7 @@
     </p>
   @endif
 
-  <p>Pour répondre, rendez-vous sur la page de suivi et saisissez votre référence :</p>
+  <p>Pour répondre, ouvrez le lien ci-dessous (votre référence est déjà renseignée) :</p>
 
   <p style="margin:20px 0;">
     <a href="{{ $lienSuivi }}"

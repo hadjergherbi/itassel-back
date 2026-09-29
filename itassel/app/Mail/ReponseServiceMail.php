@@ -20,8 +20,8 @@ class ReponseServiceMail extends Mailable
         public Doleance $doleance,
         public Reponse $reponse,
     ) {
-        $base = config('app.frontend_url') ?: 'http://localhost:5173';
-        $this->lienSuivi = rtrim($base, '/').'/suivre';
+        $base = rtrim((string) (config('itassel.frontend_url') ?: 'http://localhost:5173'), '/');
+        $this->lienSuivi = $base.'/suivre?reference='.urlencode($doleance->reference);
     }
 
     public function envelope(): Envelope

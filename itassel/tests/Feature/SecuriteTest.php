@@ -2,15 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Models\Complement;
 use App\Models\Doleance;
 use App\Models\Journal;
 use App\Models\PieceJointe;
+use App\Models\Statut;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\Support\ItasselHelpers;
 use Tests\TestCase;
 
@@ -194,50 +197,68 @@ class SecuriteTest extends TestCase
         $this->assertNull($export->headers->get('Strict-Transport-Security'));
     }
 
+    public function test_le_depot_refuse_une_piece_jointe(): void
+    {
+        $fichier = UploadedFile::fake()->create('justificatif.pdf', 100, 'application/pdf');
+
+        $this->post('/api/doleances', $this->champsDepotPublic([
+            'piece_jointe' => $fichier,
+        ]), ['Accept' => 'application/json'])
+            ->assertStatus(422);
+
+        $this->assertSame(0, PieceJointe::count());
+    }
+
+    public function test_le_depot_reussit_sans_piece_jointe(): void
+    {
+        $this->postJson('/api/doleances', $this->champsDepotPublic())
+            ->assertCreated()
+            ->assertJsonStructure(['reference', 'message']);
+
+        $this->assertSame(1, Doleance::count());
+        $this->assertSame(0, PieceJointe::count());
+    }
+
     public function test_la_piece_jointe_est_servie_en_attachment_sans_exif(): void
     {
-        $doleance = $this->doleance();
-        $chemin = 'pieces-jointes/'.$doleance->id_doleance.'/'.uniqid('pj_', true).'.jpg';
-        Storage::disk('local')->put($chemin, 'contenu-test');
-        $piece = PieceJointe::create([
-            'nom_fichier' => 'rapport.jpg',
-            'type'        => 'jpg',
-            'taille'      => 12,
-            'chemin'      => $chemin,
-            'origine'     => 'DEPOT_INITIAL',
-            'id_doleance' => $doleance->id_doleance,
+        $doleance = $this->doleance(['statut' => Statut::INFORMATION_DEMANDEE]);
+        $auteur = $this->superAdmin();
+        Complement::factory()->create([
+            'id_doleance'  => $doleance->id_doleance,
+            'id_auteur'    => $auteur->id_utilisateur,
+            'piece_exigee' => true,
+            'etat'         => 'en_attente',
         ]);
 
-        $this->connecter($this->superAdmin());
-        $telechargement = $this->get("/api/admin/pieces-jointes/{$piece->id_piece}/telecharger")
-            ->assertOk();
-
-        $this->assertStringContainsString('attachment', (string) $telechargement->headers->get('Content-Disposition'));
-        $this->assertStringNotContainsString('inline', (string) $telechargement->headers->get('Content-Disposition'));
-        $this->assertSame('image/jpeg', $telechargement->headers->get('Content-Type'));
-        $this->assertSame('nosniff', $telechargement->headers->get('X-Content-Type-Options'));
+        $jeton = Str::random(48);
+        Cache::put("suivi:session:{$jeton}", $doleance->id_doleance, 600);
 
         $cheminExif = sys_get_temp_dir().DIRECTORY_SEPARATOR.'itassel-exif-'.uniqid('', true).'.jpg';
         $jpegExif = $this->jpegAvecExif();
         file_put_contents($cheminExif, $jpegExif);
         $this->assertStringContainsString('Exif', $jpegExif);
 
-        $depot = $this->post('/api/doleances', $this->champsDepotPublic([
+        $reponse = $this->post('/api/suivi/repondre-complement', [
+            'message'      => 'Voici le justificatif demandé.',
             'piece_jointe' => new UploadedFile($cheminExif, 'photo.jpg', 'image/jpeg', null, true),
-        ]), ['Accept' => 'application/json']);
+        ], [
+            'Accept'        => 'application/json',
+            'X-Suivi-Token' => $jeton,
+        ]);
 
         if (! extension_loaded('gd')) {
-            $depot->assertStatus(422)->assertJson(['message' => 'Image invalide.']);
+            $reponse->assertStatus(422)->assertJson(['message' => 'Image invalide.']);
             $this->assertFalse(PieceJointe::where('nom_fichier', 'photo.jpg')->exists());
             @unlink($cheminExif);
 
             return;
         }
 
-        $depot->assertCreated();
+        $reponse->assertOk();
 
         $stockee = PieceJointe::where('nom_fichier', 'photo.jpg')->first();
         $this->assertNotNull($stockee);
+        $this->assertSame('COMPLEMENT', $stockee->origine);
         $this->assertTrue(Storage::disk('local')->exists($stockee->chemin));
         $this->assertStringNotContainsString('photo.jpg', $stockee->chemin);
 
@@ -245,6 +266,15 @@ class SecuriteTest extends TestCase
         $this->assertStringNotContainsString('Exif', $contenu);
         $this->assertStringNotContainsString('48.8566', $contenu);
         @unlink($cheminExif);
+
+        $this->connecter($auteur);
+        $telechargement = $this->get("/api/admin/pieces-jointes/{$stockee->id_piece}/telecharger")
+            ->assertOk();
+
+        $this->assertStringContainsString('attachment', (string) $telechargement->headers->get('Content-Disposition'));
+        $this->assertStringNotContainsString('inline', (string) $telechargement->headers->get('Content-Disposition'));
+        $this->assertSame('image/jpeg', $telechargement->headers->get('Content-Type'));
+        $this->assertSame('nosniff', $telechargement->headers->get('X-Content-Type-Options'));
     }
 
     private function echouerLogin(int $fois, string $email, string $motDePasse): void

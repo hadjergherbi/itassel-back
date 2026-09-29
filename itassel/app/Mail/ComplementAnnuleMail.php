@@ -17,7 +17,8 @@ class ComplementAnnuleMail extends Mailable
 
     public function __construct(public Doleance $doleance)
     {
-        $this->lienSuivi = rtrim((string) config('app.frontend_url'), '/').'/suivre';
+        $base = rtrim((string) (config('itassel.frontend_url') ?: 'http://localhost:5173'), '/');
+        $this->lienSuivi = $base.'/suivre?reference='.urlencode($doleance->reference);
     }
 
     public function envelope(): Envelope

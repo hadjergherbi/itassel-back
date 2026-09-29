@@ -72,6 +72,7 @@ php artisan migrate --force && php artisan db:seed --force && php artisan config
 - [ ] Un jeton de plus de 8 h est refusé (401 « Session expirée »)
 - [ ] Cinq échecs de connexion verrouillent le compte 15 minutes
 - [ ] Le formulaire public exige un jeton frais et refuse le champ piège `site_web`
+- [ ] Le dépôt public refuse toute `piece_jointe` (422) ; pièce jointe uniquement en réponse à une demande de complément
 - [ ] L’aperçu des pièces jointes est en `inline` ; le téléchargement (`attachment`) exige `pieces_jointes.telecharger`
 - [ ] Les JPEG/PNG déposés sont ré-encodés (plus d’EXIF GPS)
 

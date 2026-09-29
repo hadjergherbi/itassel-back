@@ -6,13 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Doleance;
 use App\Models\Historique;
 use App\Models\Nature;
-use App\Models\PieceJointe;
 use App\Models\Service;
 use App\Models\Statut;
 use App\Services\NotificationDispatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,6 +33,7 @@ class DoleanceController extends Controller
     /**
      * POST /api/doleances
      * Dépôt d'une doléance depuis le formulaire public (écran "Déposer une doléance").
+     * Les pièces jointes ne sont pas acceptées au dépôt (uniquement en réponse à un complément).
      */
     public function store(Request $request)
     {
@@ -81,19 +80,10 @@ class DoleanceController extends Controller
                 'required',
                 Rule::exists('qualites', 'id_qualite')->where('selectionnable', true),
             ],
-            'piece_jointe' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // 5 Mo
+            'piece_jointe' => ['prohibited'],
         ]);
 
-        $fichier = $request->file('piece_jointe');
-        if ($fichier instanceof UploadedFile) {
-            $extension = strtolower($fichier->getClientOriginalExtension());
-            if (in_array($extension, ['jpg', 'jpeg', 'png'], true)
-                && ! $this->reencoderImageSansExif($fichier, $extension)) {
-                return response()->json(['message' => 'Image invalide.'], 422);
-            }
-        }
-
-        [$doleance, $evenement] = DB::transaction(function () use ($data, $fichier) {
+        [$doleance, $evenement] = DB::transaction(function () use ($data) {
             $statutNouvelle = Statut::parCode(Statut::NOUVELLE);
 
             $doleance = Doleance::create([
@@ -111,20 +101,6 @@ class DoleanceController extends Controller
                 'id_nature'   => $data['id_nature'],
                 'id_qualite'  => $data['id_qualite'],
             ]);
-
-            if ($fichier instanceof UploadedFile) {
-                $chemin = $fichier->store('pieces-jointes/'.$doleance->id_doleance, 'local');
-                $extension = strtolower($fichier->getClientOriginalExtension());
-
-                PieceJointe::create([
-                    'nom_fichier' => $fichier->getClientOriginalName(),
-                    'type'        => $extension === 'jpeg' ? 'jpg' : $extension,
-                    'taille'      => filesize($fichier->getRealPath()) ?: $fichier->getSize(),
-                    'chemin'      => $chemin,
-                    'origine'     => 'DEPOT_INITIAL',
-                    'id_doleance' => $doleance->id_doleance,
-                ]);
-            }
 
             $evenement = Historique::create([
                 'date_evenement'    => now(),
@@ -202,41 +178,6 @@ class DoleanceController extends Controller
         }
 
         return null;
-    }
-
-    /**
-     * Ré-encode JPEG/PNG via GD pour retirer EXIF (GPS). Refuse si GD manque ou si le décodage échoue.
-     */
-    private function reencoderImageSansExif(UploadedFile $fichier, string $extension): bool
-    {
-        if (! extension_loaded('gd')) {
-            return false;
-        }
-
-        $chemin = $fichier->getRealPath();
-        if (! is_string($chemin) || $chemin === '' || ! is_file($chemin)) {
-            return false;
-        }
-
-        $image = match ($extension) {
-            'jpg', 'jpeg' => @imagecreatefromjpeg($chemin),
-            'png'         => @imagecreatefrompng($chemin),
-            default       => false,
-        };
-
-        if ($image === false) {
-            return false;
-        }
-
-        $ok = match ($extension) {
-            'jpg', 'jpeg' => imagejpeg($image, $chemin, 90),
-            'png'         => imagepng($image, $chemin),
-            default       => false,
-        };
-
-        imagedestroy($image);
-
-        return $ok !== false;
     }
 
     /**

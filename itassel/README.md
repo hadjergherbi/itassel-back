@@ -13,10 +13,10 @@ Ce dépôt contient uniquement le back-end. L’interface d’administration et 
 
 ## Fonctionnalités principales
 
-- Dépôt public d’une doléance et suivi citoyen (code de vérification, réponse à un complément)
+- Dépôt public d’une doléance (sans pièce jointe) et suivi citoyen (code de vérification, réponse à un complément)
 - Authentification des administrateurs (connexion, invitation, mot de passe oublié)
 - Tableau de bord et liste des doléances, filtrés selon le service
-- Traitement des dossiers : statuts, réponses, notes internes, pièces jointes, compléments, reclassement
+- Traitement des dossiers : statuts, réponses, notes internes, pièces jointes (uniquement en réponse à une demande de complément), compléments, reclassement
 - Réaffectation d’un dossier d’un service à un autre
 - Gestion des utilisateurs, rôles, permissions et services
 - Notifications dans l’application et par e-mail

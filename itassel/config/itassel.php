@@ -25,7 +25,7 @@ return [
     ],
 
     'transitions' => [
-        'nouvelle'             => array_merge(['en_cours'], $issues),
+        'nouvelle'             => array_merge(['en_cours', 'information_demandee'], $issues),
         'en_cours'             => array_merge(['information_demandee'], $issues),
         'information_demandee' => ['en_cours'],
         'resolue'              => [],

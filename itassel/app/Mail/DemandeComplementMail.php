@@ -20,9 +20,7 @@ class DemandeComplementMail extends Mailable
         public Doleance $doleance,
         public Complement $complement,
     ) {
-        // Adresse du site public (React). À régler dans .env : FRONTEND_URL=...
-        $base = config('app.frontend_url') ?: 'http://localhost:5173';
-        $this->lienSuivi = rtrim($base, '/').'/suivre';
+        $this->lienSuivi = $this->lienSuiviPour($doleance);
     }
 
     public function envelope(): Envelope
@@ -35,5 +33,12 @@ class DemandeComplementMail extends Mailable
     public function content(): Content
     {
         return new Content(view: 'emails.demande-complement');
+    }
+
+    private function lienSuiviPour(Doleance $doleance): string
+    {
+        $base = rtrim((string) (config('itassel.frontend_url') ?: 'http://localhost:5173'), '/');
+
+        return $base.'/suivre?reference='.urlencode($doleance->reference);
     }
 }

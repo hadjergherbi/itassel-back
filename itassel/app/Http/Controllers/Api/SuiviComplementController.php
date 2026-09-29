@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Complement;
 use App\Models\Doleance;
 use App\Models\Historique;
-use App\Models\PieceJointe;
 use App\Models\Statut;
 use App\Services\NotificationDispatcher;
+use App\Services\PieceJointeService;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SuiviComplementController extends Controller
 {
@@ -21,8 +23,8 @@ class SuiviComplementController extends Controller
     public function repondre(Request $request)
     {
         $data = $request->validate([
-            'message'       => ['required', 'string'],
-            'piece_jointe'  => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'message'      => ['required', 'string', 'max:2000'],
+            'piece_jointe' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ]);
 
         $idDoleance = SuiviController::idDoleanceDepuisEntete($request);
@@ -31,7 +33,7 @@ class SuiviComplementController extends Controller
             return response()->json(['message' => 'Session expirée ou invalide.'], 401);
         }
 
-        $doleance = Doleance::findOrFail($idDoleance);
+        $doleance = Doleance::with('statut')->findOrFail($idDoleance);
 
         $complement = Complement::where('id_doleance', $doleance->id_doleance)
             ->where('etat', 'en_attente')
@@ -44,33 +46,43 @@ class SuiviComplementController extends Controller
             ], 404);
         }
 
+        if ($doleance->statut?->code !== Statut::INFORMATION_DEMANDEE) {
+            return response()->json([
+                'message' => 'Ce dossier n\'est plus en attente d\'information. Vous ne pouvez plus répondre à cette demande.',
+            ], 409);
+        }
+
         if ($complement->piece_exigee && ! $request->hasFile('piece_jointe')) {
             return response()->json([
                 'errors' => ['piece_jointe' => ['Une pièce jointe est obligatoire pour cette demande.']],
             ], 422);
         }
 
-        $evenement = DB::transaction(function () use ($complement, $doleance, $data, $request) {
+        $fichier = $request->file('piece_jointe');
+        if ($fichier instanceof UploadedFile) {
+            $extension = strtolower($fichier->getClientOriginalExtension());
+            if (in_array($extension, ['jpg', 'jpeg', 'png'], true)
+                && ! PieceJointeService::reencoderImageSansExif($fichier, $extension)) {
+                throw ValidationException::withMessages([
+                    'piece_jointe' => ['Image invalide.'],
+                ]);
+            }
+        }
+
+        $evenement = DB::transaction(function () use ($complement, $doleance, $data, $fichier) {
             $complement->update([
                 'reponse'      => $data['message'],
                 'date_reponse' => now(),
                 'etat'         => 'recu',
             ]);
 
-            if ($request->hasFile('piece_jointe')) {
-                $fichier = $request->file('piece_jointe');
-                $chemin = $fichier->store('pieces-jointes/'.$doleance->id_doleance, 'local');
-                $extension = strtolower($fichier->getClientOriginalExtension());
-
-                PieceJointe::create([
-                    'nom_fichier'   => $fichier->getClientOriginalName(),
-                    'type'          => $extension === 'jpeg' ? 'jpg' : $extension,
-                    'taille'        => $fichier->getSize(),
-                    'chemin'        => $chemin,
-                    'origine'       => 'COMPLEMENT',
-                    'id_doleance'   => $doleance->id_doleance,
-                    'id_complement' => $complement->id_complement,
-                ]);
+            if ($fichier instanceof UploadedFile) {
+                PieceJointeService::enregistrer(
+                    $fichier,
+                    $doleance,
+                    'COMPLEMENT',
+                    $complement->id_complement,
+                );
             }
 
             // Le dossier repart en traitement : le service doit examiner la réponse.
