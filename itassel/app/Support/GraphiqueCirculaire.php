@@ -112,7 +112,7 @@ class GraphiqueCirculaire
             }
             $propres[] = [
                 'libelle' => (string) ($part['libelle'] ?? ''),
-                'valeur'  => $valeur,
+                'valeur' => $valeur,
                 'couleur' => isset($part['couleur']) && $part['couleur'] !== '' ? (string) $part['couleur'] : null,
             ];
         }
@@ -124,7 +124,7 @@ class GraphiqueCirculaire
             $propres = array_slice($propres, 0, 5);
             $propres[] = [
                 'libelle' => 'Autres',
-                'valeur'  => array_sum(array_column($reste, 'valeur')),
+                'valeur' => array_sum(array_column($reste, 'valeur')),
                 'couleur' => self::PALETTE[6],
             ];
         }
@@ -149,10 +149,10 @@ class GraphiqueCirculaire
         $lignes = [];
         foreach ($serie as $index => $part) {
             $lignes[] = [
-                'libelle'      => $part['libelle'],
-                'valeur'       => $part['valeur'],
-                'pourcentage'  => $pourcentages[$index] ?? 0.0,
-                'couleur'      => $part['couleur'],
+                'libelle' => $part['libelle'],
+                'valeur' => $part['valeur'],
+                'pourcentage' => $pourcentages[$index] ?? 0.0,
+                'couleur' => $part['couleur'],
             ];
         }
 

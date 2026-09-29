@@ -46,7 +46,7 @@ class JournalAdminController extends Controller
         if ($format === 'pdf' && $total > 5000) {
             return response()->json([
                 'message' => "Trop de lignes pour un PDF ({$total}). Affinez les filtres ou exportez en CSV.",
-                'code'    => 'export_trop_volumineux',
+                'code' => 'export_trop_volumineux',
             ], 422);
         }
 
@@ -92,7 +92,7 @@ class JournalAdminController extends Controller
         JournalService::action($request, $request->user(), 'export_journal', $lignes->count().' ligne(s)');
 
         return response($contenu, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="journaux-'.now()->format('Y-m-d').'.csv"',
         ]);
     }
@@ -133,16 +133,16 @@ class JournalAdminController extends Controller
     private function valider(Request $request): array
     {
         $data = $request->validate([
-            'categorie'   => ['nullable', 'string'],
-            'action'      => ['nullable', 'string', 'max:60'],
-            'sensible'    => ['nullable', 'boolean'],
+            'categorie' => ['nullable', 'string'],
+            'action' => ['nullable', 'string', 'max:60'],
+            'sensible' => ['nullable', 'boolean'],
             'utilisateur' => ['nullable', 'integer'],
-            'periode'     => ['nullable', 'string', 'in:aujourdhui,7j,30j,3m'],
-            'date_debut'  => ['nullable', 'date'],
-            'date_fin'    => ['nullable', 'date'],
-            'resultat'    => ['nullable', 'string', 'in:succes,echec'],
-            'q'           => ['nullable', 'string', 'max:100'],
-            'format'      => ['nullable', 'in:csv,pdf'],
+            'periode' => ['nullable', 'string', 'in:aujourdhui,7j,30j,3m'],
+            'date_debut' => ['nullable', 'date'],
+            'date_fin' => ['nullable', 'date'],
+            'resultat' => ['nullable', 'string', 'in:succes,echec'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'format' => ['nullable', 'in:csv,pdf'],
         ]);
 
         if ($request->exists('sensible')) {
@@ -188,9 +188,9 @@ class JournalAdminController extends Controller
         if (! empty($filtres['periode'])) {
             $depuis = match ($filtres['periode']) {
                 'aujourdhui' => now()->startOfDay(),
-                '7j'         => now()->subDays(7),
-                '30j'        => now()->subDays(30),
-                '3m'         => now()->subMonths(3),
+                '7j' => now()->subDays(7),
+                '30j' => now()->subDays(30),
+                '3m' => now()->subMonths(3),
             };
             $query->where('date_action', '>=', $depuis);
         }
@@ -204,11 +204,11 @@ class JournalAdminController extends Controller
             $texte = '%'.addcslashes($filtres['q'], '%_').'%';
             $query->where(function ($w) use ($texte) {
                 $w->where('compte', 'like', $texte)
-                  ->orWhere('detail', 'like', $texte)
-                  ->orWhere('adresse_ip', 'like', $texte)
-                  ->orWhereHas('utilisateur', fn ($u) => $u
-                      ->where('nom', 'like', $texte)
-                      ->orWhere('prenom', 'like', $texte));
+                    ->orWhere('detail', 'like', $texte)
+                    ->orWhere('adresse_ip', 'like', $texte)
+                    ->orWhereHas('utilisateur', fn ($u) => $u
+                        ->where('nom', 'like', $texte)
+                        ->orWhere('prenom', 'like', $texte));
             });
         }
 
@@ -220,27 +220,27 @@ class JournalAdminController extends Controller
         $utilisateur = null;
         if ($j->utilisateur && $j->resultat === 'succes') {
             $utilisateur = [
-                'nom'          => $j->utilisateur->nom,
-                'prenom'       => $j->utilisateur->prenom,
+                'nom' => $j->utilisateur->nom,
+                'prenom' => $j->utilisateur->prenom,
                 'libelle_role' => $j->utilisateur->libelleRole(),
-                'service'      => $j->utilisateur->service?->nom_service,
+                'service' => $j->utilisateur->service?->nom_service,
             ];
         }
 
         return [
-            'id_journal'     => $j->id_journal,
-            'date_action'    => $j->date_action,
-            'action'         => $j->action,
+            'id_journal' => $j->id_journal,
+            'date_action' => $j->date_action,
+            'action' => $j->action,
             'action_libelle' => $this->libelleAction($j->action),
-            'categorie'      => $j->categorie,
-            'detail'         => $j->detail,
+            'categorie' => $j->categorie,
+            'detail' => $j->detail,
             'detail_lisible' => $this->detailLisible($j),
-            'sensible'       => $this->estSensible($j->action),
-            'cible'          => $this->cibleDe($j),
-            'adresse_ip'     => $j->adresse_ip,
-            'resultat'       => $j->resultat,
-            'compte'         => $j->compte,
-            'utilisateur'    => $utilisateur,
+            'sensible' => $this->estSensible($j->action),
+            'cible' => $this->cibleDe($j),
+            'adresse_ip' => $j->adresse_ip,
+            'resultat' => $j->resultat,
+            'compte' => $j->compte,
+            'utilisateur' => $utilisateur,
         ];
     }
 
@@ -290,24 +290,24 @@ class JournalAdminController extends Controller
 
         return match ($journal->cible_type) {
             Doleance::class => [
-                'type'    => 'doleance',
-                'id'      => $modele->getKey(),
+                'type' => 'doleance',
+                'id' => $modele->getKey(),
                 'libelle' => $modele->reference,
-                'lien'    => '/admin/doleances/'.$modele->reference,
+                'lien' => '/admin/doleances/'.$modele->reference,
             ],
             Utilisateur::class => [
-                'type'    => 'utilisateur',
-                'id'      => $modele->getKey(),
+                'type' => 'utilisateur',
+                'id' => $modele->getKey(),
                 'libelle' => $modele->nomComplet(),
-                'lien'    => $modele->trashed()
+                'lien' => $modele->trashed()
                     ? null
                     : '/admin/utilisateurs?id='.$modele->getKey(),
             ],
             Service::class => [
-                'type'    => 'service',
-                'id'      => $modele->getKey(),
+                'type' => 'service',
+                'id' => $modele->getKey(),
                 'libelle' => $modele->nom_service,
-                'lien'    => '/admin/services',
+                'lien' => '/admin/services',
             ],
             default => null,
         };
@@ -351,19 +351,19 @@ class JournalAdminController extends Controller
         $nomFichier = 'journal_'.$debut.'_'.$fin.'.pdf';
 
         $pdf = Pdf::loadView('exports.journal', [
-            'lignes'             => $lignes,
-            'total'              => $total,
-            'echecs_connexion'   => $this->compterEchecsConnexion($lignes, $requete, $sql),
-            'actions_sensibles'  => $this->compterSensibles($lignes, $requete, $sql),
-            'graphiques'         => $this->graphiquesJournal($lignes, $requete, $sql),
-            'filtres_lisibles'   => $this->filtresLisibles($filtres),
-            'libelles'           => collect(config('itassel.journal.actions', []))
+            'lignes' => $lignes,
+            'total' => $total,
+            'echecs_connexion' => $this->compterEchecsConnexion($lignes, $requete, $sql),
+            'actions_sensibles' => $this->compterSensibles($lignes, $requete, $sql),
+            'graphiques' => $this->graphiquesJournal($lignes, $requete, $sql),
+            'filtres_lisibles' => $this->filtresLisibles($filtres),
+            'libelles' => collect(config('itassel.journal.actions', []))
                 ->map(fn ($meta) => is_array($meta) ? ($meta[0] ?? '') : $meta)
                 ->all(),
-            'genere_le'          => now()->format('d/m/Y H:i'),
-            'agent'              => $request->user()->nomComplet(),
-            'titre_document'     => 'Journal des actions',
-            'reference'          => 'JRN-'.$fin,
+            'genere_le' => now()->format('d/m/Y H:i'),
+            'agent' => $request->user()->nomComplet(),
+            'titre_document' => 'Journal des actions',
+            'reference' => 'JRN-'.$fin,
         ])->setPaper('a4', 'landscape');
 
         ExportPdf::preparer($pdf);
@@ -373,7 +373,7 @@ class JournalAdminController extends Controller
         JournalService::action($request, $request->user(), 'export_journal', "PDF — {$total} ligne(s)");
 
         return response($dompdf->output(), 200, [
-            'Content-Type'        => 'application/pdf',
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$nomFichier.'"',
         ]);
     }
@@ -428,7 +428,7 @@ class JournalAdminController extends Controller
                 ->get()
                 ->map(fn ($ligne) => [
                     'libelle' => $this->libelleCategorie((string) $ligne->libelle),
-                    'valeur'  => (int) $ligne->total,
+                    'valeur' => (int) $ligne->total,
                 ])
                 ->all();
 
@@ -446,7 +446,7 @@ class JournalAdminController extends Controller
                 ->groupBy(fn (Journal $journal) => $journal->categorie ?: 'sans_categorie')
                 ->map(fn ($groupe, $libelle) => [
                     'libelle' => $this->libelleCategorie((string) $libelle),
-                    'valeur'  => $groupe->count(),
+                    'valeur' => $groupe->count(),
                 ])
                 ->values()->all();
 
@@ -457,9 +457,9 @@ class JournalAdminController extends Controller
                 ->groupBy(fn (Journal $journal) => $journal->id_utilisateur ?: 'compte:'.$journal->compte)
                 ->map(fn ($groupe) => [
                     'id_utilisateur' => $groupe->first()->id_utilisateur,
-                    'compte'         => $groupe->first()->compte,
-                    'total'          => $groupe->count(),
-                    'nom'            => $groupe->first()->utilisateur?->nomComplet(),
+                    'compte' => $groupe->first()->compte,
+                    'total' => $groupe->count(),
+                    'nom' => $groupe->first()->utilisateur?->nomComplet(),
                 ])
                 ->sortByDesc('total')
                 ->values();
@@ -521,8 +521,8 @@ class JournalAdminController extends Controller
         }
 
         return [
-            'titre'   => $titre,
-            'image'   => null,
+            'titre' => $titre,
+            'image' => null,
             'legende' => GraphiqueCirculaire::legende($serie),
         ];
     }
@@ -555,10 +555,10 @@ class JournalAdminController extends Controller
         } else {
             $periode = match ($filtres['periode'] ?? null) {
                 'aujourdhui' => "Aujourd'hui",
-                '7j'         => '7 derniers jours',
-                '30j'        => '30 derniers jours',
-                '3m'         => '3 derniers mois',
-                default      => 'Toutes les dates',
+                '7j' => '7 derniers jours',
+                '30j' => '30 derniers jours',
+                '3m' => '3 derniers mois',
+                default => 'Toutes les dates',
             };
         }
 
@@ -569,13 +569,13 @@ class JournalAdminController extends Controller
         }
 
         return [
-            'periode'     => $periode,
-            'categorie'   => $this->libelleCategoriesFiltre($filtres['categorie'] ?? null),
+            'periode' => $periode,
+            'categorie' => $this->libelleCategoriesFiltre($filtres['categorie'] ?? null),
             'utilisateur' => $utilisateur,
-            'resultat'    => match ($filtres['resultat'] ?? null) {
+            'resultat' => match ($filtres['resultat'] ?? null) {
                 'succes' => 'Succès',
-                'echec'  => 'Échec',
-                default  => 'Tous',
+                'echec' => 'Échec',
+                default => 'Tous',
             },
         ];
     }
@@ -595,10 +595,10 @@ class JournalAdminController extends Controller
         $fin = now();
         $debut = match ($filtres['periode'] ?? null) {
             'aujourdhui' => now()->startOfDay(),
-            '7j'         => now()->subDays(7)->startOfDay(),
-            '30j'        => now()->subDays(30)->startOfDay(),
-            '3m'         => now()->subMonths(3)->startOfDay(),
-            default      => null,
+            '7j' => now()->subDays(7)->startOfDay(),
+            '30j' => now()->subDays(30)->startOfDay(),
+            '3m' => now()->subMonths(3)->startOfDay(),
+            default => null,
         };
 
         if ($debut) {

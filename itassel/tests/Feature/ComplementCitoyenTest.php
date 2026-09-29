@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Mail\DemandeComplementMail;
 use App\Models\Complement;
+use App\Models\Doleance;
 use App\Models\Historique;
 use App\Models\PieceJointe;
 use App\Models\Statut;
+use App\Models\Utilisateur;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -18,7 +20,7 @@ use Tests\TestCase;
 
 class ComplementCitoyenTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -32,7 +34,7 @@ class ComplementCitoyenTest extends TestCase
         $admin = $this->adminService();
         $this->connecter($admin);
         $doleance = $this->doleance([
-            'statut'     => Statut::NOUVELLE,
+            'statut' => Statut::NOUVELLE,
             'id_service' => $admin->id_service,
         ]);
         $idNouvelle = Statut::parCode(Statut::NOUVELLE)->id_statut;
@@ -40,7 +42,7 @@ class ComplementCitoyenTest extends TestCase
 
         $this->postJson("/api/admin/doleances/{$doleance->reference}/statut", [
             'id_statut' => $idInfo,
-            'question'  => 'Pouvez-vous préciser le lieu ?',
+            'question' => 'Pouvez-vous préciser le lieu ?',
         ])->assertOk();
 
         $doleance->refresh();
@@ -65,7 +67,7 @@ class ComplementCitoyenTest extends TestCase
         $admin = $this->adminService();
         $this->connecter($admin);
         $doleance = $this->doleance([
-            'statut'     => Statut::NOUVELLE,
+            'statut' => Statut::NOUVELLE,
             'id_service' => $admin->id_service,
         ]);
 
@@ -84,14 +86,14 @@ class ComplementCitoyenTest extends TestCase
         $admin = $this->adminService();
         $this->connecter($admin);
         $doleance = $this->doleance([
-            'statut'         => Statut::EN_COURS,
-            'id_service'     => $admin->id_service,
+            'statut' => Statut::EN_COURS,
+            'id_service' => $admin->id_service,
             'id_responsable' => $admin->id_utilisateur,
         ]);
 
         $this->postJson("/api/admin/doleances/{$doleance->reference}/statut", [
             'id_statut' => Statut::parCode(Statut::INFORMATION_DEMANDEE)->id_statut,
-            'question'  => 'Quel est le numéro de licence ?',
+            'question' => 'Quel est le numéro de licence ?',
         ])->assertOk();
 
         $this->assertSame(Statut::INFORMATION_DEMANDEE, $doleance->fresh()->statut->code);
@@ -103,7 +105,7 @@ class ComplementCitoyenTest extends TestCase
         $admin = $this->adminService();
         $this->connecter($admin);
         $doleance = $this->doleance([
-            'statut'     => Statut::NOUVELLE,
+            'statut' => Statut::NOUVELLE,
             'id_service' => $admin->id_service,
         ]);
 
@@ -116,12 +118,12 @@ class ComplementCitoyenTest extends TestCase
     {
         $doleance = $this->doleance(['statut' => Statut::INFORMATION_DEMANDEE]);
         Complement::factory()->create([
-            'id_doleance'         => $doleance->id_doleance,
-            'etat'                => 'en_attente',
-            'question'            => 'Merci de préciser.',
-            'piece_exigee'        => true,
-            'description_piece'   => 'Scan de la pièce d\'identité',
-            'motif_annulation'    => 'ne doit pas apparaître',
+            'id_doleance' => $doleance->id_doleance,
+            'etat' => 'en_attente',
+            'question' => 'Merci de préciser.',
+            'piece_exigee' => true,
+            'description_piece' => 'Scan de la pièce d\'identité',
+            'motif_annulation' => 'ne doit pas apparaître',
         ]);
 
         $reponse = $this->avecSessionSuivi($doleance)
@@ -183,7 +185,7 @@ class ComplementCitoyenTest extends TestCase
 
         $this->avecSessionSuivi($doleance)
             ->post('/api/suivi/repondre-complement', [
-                'message'      => 'Voici la photo.',
+                'message' => 'Voici la photo.',
                 'piece_jointe' => new UploadedFile($cheminExif, 'photo.jpg', 'image/jpeg', null, true),
             ], ['Accept' => 'application/json'])
             ->assertOk();
@@ -206,14 +208,14 @@ class ComplementCitoyenTest extends TestCase
 
         $this->avecSessionSuivi($doleance)
             ->post('/api/suivi/repondre-complement', [
-                'message'      => 'Archive.',
+                'message' => 'Archive.',
                 'piece_jointe' => UploadedFile::fake()->create('archive.zip', 100, 'application/zip'),
             ], ['Accept' => 'application/json'])
             ->assertStatus(422);
 
         $this->avecSessionSuivi($doleance)
             ->post('/api/suivi/repondre-complement', [
-                'message'      => 'Trop gros.',
+                'message' => 'Trop gros.',
                 'piece_jointe' => UploadedFile::fake()->create('gros.pdf', 5121, 'application/pdf'),
             ], ['Accept' => 'application/json'])
             ->assertStatus(422);
@@ -268,13 +270,13 @@ class ComplementCitoyenTest extends TestCase
         $admin = $this->adminService();
         $this->connecter($admin);
         $doleance = $this->doleance([
-            'statut'     => Statut::NOUVELLE,
+            'statut' => Statut::NOUVELLE,
             'id_service' => $admin->id_service,
         ]);
 
         $this->postJson("/api/admin/doleances/{$doleance->reference}/statut", [
             'id_statut' => Statut::parCode(Statut::INFORMATION_DEMANDEE)->id_statut,
-            'question'  => 'Une précision s\'il vous plaît.',
+            'question' => 'Une précision s\'il vous plaît.',
         ])->assertOk();
 
         Mail::assertSent(DemandeComplementMail::class, function (DemandeComplementMail $mail) use ($doleance) {
@@ -284,30 +286,30 @@ class ComplementCitoyenTest extends TestCase
     }
 
     /**
-     * @return array{0: \App\Models\Doleance, 1: Complement}
+     * @return array{0: Doleance, 1: Complement}
      */
     private function dossierAvecComplementEnAttente(
         bool $pieceExigee,
-        ?\App\Models\Utilisateur $admin = null,
+        ?Utilisateur $admin = null,
     ): array {
         $admin ??= $this->adminService();
         $doleance = $this->doleance([
-            'statut'         => Statut::INFORMATION_DEMANDEE,
-            'id_service'     => $admin->id_service,
+            'statut' => Statut::INFORMATION_DEMANDEE,
+            'id_service' => $admin->id_service,
             'id_responsable' => $admin->id_utilisateur,
         ]);
         $complement = Complement::factory()->create([
-            'id_doleance'       => $doleance->id_doleance,
-            'id_auteur'         => $admin->id_utilisateur,
-            'etat'              => 'en_attente',
-            'piece_exigee'      => $pieceExigee,
+            'id_doleance' => $doleance->id_doleance,
+            'id_auteur' => $admin->id_utilisateur,
+            'etat' => 'en_attente',
+            'piece_exigee' => $pieceExigee,
             'description_piece' => $pieceExigee ? 'Justificatif' : null,
         ]);
 
         return [$doleance, $complement];
     }
 
-    private function jetonSuivi(\App\Models\Doleance $doleance): string
+    private function jetonSuivi(Doleance $doleance): string
     {
         $jeton = Str::random(48);
         Cache::put("suivi:session:{$jeton}", $doleance->id_doleance, 600);
@@ -315,7 +317,7 @@ class ComplementCitoyenTest extends TestCase
         return $jeton;
     }
 
-    private function avecSessionSuivi(\App\Models\Doleance $doleance): static
+    private function avecSessionSuivi(Doleance $doleance): static
     {
         return $this->withHeader('X-Suivi-Token', $this->jetonSuivi($doleance));
     }

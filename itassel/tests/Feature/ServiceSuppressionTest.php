@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class ServiceSuppressionTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -48,7 +48,7 @@ class ServiceSuppressionTest extends TestCase
         $permission = Permission::where('code', 'services.gerer')->first();
         $role = Role::where('code', 'admin_service')->first();
         DB::table('role_permission')->updateOrInsert([
-            'id_role'       => $role->id_role,
+            'id_role' => $role->id_role,
             'id_permission' => $permission->id_permission,
         ]);
         Utilisateur::viderCachePermissions('admin_service');
@@ -58,7 +58,7 @@ class ServiceSuppressionTest extends TestCase
             ->assertStatus(403)
             ->assertJson([
                 'message' => 'Seul le Super administrateur peut supprimer un service.',
-                'code'    => 'non_autorise',
+                'code' => 'non_autorise',
             ]);
 
         $this->assertNotNull(Service::find($service->id_service));
@@ -73,7 +73,7 @@ class ServiceSuppressionTest extends TestCase
             ->deleteJson("/api/admin/services/{$service->id_service}")
             ->assertStatus(409)
             ->assertJson([
-                'code'    => 'service_doleances',
+                'code' => 'service_doleances',
                 'message' => 'Ce service contient encore des doléances : il ne peut pas être supprimé.',
             ]);
 
@@ -89,7 +89,7 @@ class ServiceSuppressionTest extends TestCase
             ->deleteJson("/api/admin/services/{$service->id_service}")
             ->assertStatus(409)
             ->assertJson([
-                'code'    => 'service_utilisateurs',
+                'code' => 'service_utilisateurs',
                 'message' => 'Des utilisateurs sont encore rattachés à ce service : réaffectez-les ou supprimez-les d\'abord.',
             ]);
 
@@ -118,11 +118,11 @@ class ServiceSuppressionTest extends TestCase
         $demandeur = $this->adminService($autre);
 
         Reaffectation::create([
-            'etat'               => 'en_attente',
-            'motif'              => 'Mauvais service',
-            'date_demande'       => now(),
-            'id_doleance'        => $doleance->id_doleance,
-            'id_demandeur'       => $demandeur->id_utilisateur,
+            'etat' => 'en_attente',
+            'motif' => 'Mauvais service',
+            'date_demande' => now(),
+            'id_doleance' => $doleance->id_doleance,
+            'id_demandeur' => $demandeur->id_utilisateur,
             'id_service_propose' => $cible->id_service,
         ]);
 

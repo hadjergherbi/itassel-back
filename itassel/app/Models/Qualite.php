@@ -46,9 +46,9 @@ class Qualite extends Model
                 ->first();
 
             $attributs = [
-                'libelle'        => $libelle,
+                'libelle' => $libelle,
                 'selectionnable' => true,
-                'ordre'          => ($index + 1) * 10,
+                'ordre' => ($index + 1) * 10,
             ];
 
             if ($existante) {

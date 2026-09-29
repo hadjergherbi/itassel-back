@@ -32,10 +32,10 @@ class ServiceAdminController extends Controller
             ->whereNull('id_responsable')
             ->reject(fn (Service $s) => Service::estTousLesDomaines($s->nom_service))
             ->map(fn (Service $s) => [
-                'id_service'  => $s->id_service,
-                'nom'         => $s->nom_service,
+                'id_service' => $s->id_service,
+                'nom' => $s->nom_service,
                 'nom_service' => $s->nom_service,
-                'code'        => 'sans_responsable',
+                'code' => 'sans_responsable',
             ])->values();
 
         return response()->json([
@@ -43,20 +43,20 @@ class ServiceAdminController extends Controller
                 $raison = $this->raisonBlocageListe($s);
 
                 return [
-                    'id'              => $s->id_service,
-                    'id_service'      => $s->id_service,
-                    'nom'             => $s->nom_service,
-                    'nom_service'     => $s->nom_service,
-                    'responsable'     => $s->responsable
+                    'id' => $s->id_service,
+                    'id_service' => $s->id_service,
+                    'nom' => $s->nom_service,
+                    'nom_service' => $s->nom_service,
+                    'responsable' => $s->responsable
                         ? $s->responsable->only(['id_utilisateur', 'nom', 'prenom', 'email'])
                         : null,
-                    'total'           => $s->total,
-                    'a_traiter'       => $s->a_traiter,
-                    'ouvertes'        => $s->ouvertes,
-                    'supprimable'     => $raison === null,
-                    'raison_blocage'  => $raison,
-                    'assignable'      => ! Service::estTousLesDomaines($s->nom_service),
-                    'alertes'         => ($s->id_responsable || Service::estTousLesDomaines($s->nom_service))
+                    'total' => $s->total,
+                    'a_traiter' => $s->a_traiter,
+                    'ouvertes' => $s->ouvertes,
+                    'supprimable' => $raison === null,
+                    'raison_blocage' => $raison,
+                    'assignable' => ! Service::estTousLesDomaines($s->nom_service),
+                    'alertes' => ($s->id_responsable || Service::estTousLesDomaines($s->nom_service))
                         ? []
                         : [['code' => 'sans_responsable']],
                 ];
@@ -82,7 +82,7 @@ class ServiceAdminController extends Controller
         if (! $request->user()->can('delete', $service)) {
             return response()->json([
                 'message' => 'Seul le Super administrateur peut supprimer un service.',
-                'code'    => 'non_autorise',
+                'code' => 'non_autorise',
             ], 403);
         }
 

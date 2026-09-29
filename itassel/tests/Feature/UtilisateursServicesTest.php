@@ -2,16 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\Service;
 use App\Models\Statut;
+use App\Models\Utilisateur;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\ItasselHelpers;
 use Tests\TestCase;
 
 class UtilisateursServicesTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -33,7 +37,7 @@ class UtilisateursServicesTest extends TestCase
             'id_service' => $service->id_service,
         ])->assertCreated();
 
-        $cible = \App\Models\Utilisateur::where('email', 'lina@itassel.test')->first();
+        $cible = Utilisateur::where('email', 'lina@itassel.test')->first();
         $cible->mot_de_passe_defini_le = now();
         $cible->save();
         $service->update(['id_responsable' => $cible->id_utilisateur]);
@@ -57,7 +61,7 @@ class UtilisateursServicesTest extends TestCase
     {
         $gardien = $this->superAdmin(['email' => 'gardien@itassel.test']);
         $seul = $this->superAdmin(['email' => 'seul@itassel.test']);
-        \App\Models\Utilisateur::where('role', 'super_admin')
+        Utilisateur::where('role', 'super_admin')
             ->whereNotIn('id_utilisateur', [$gardien->id_utilisateur, $seul->id_utilisateur])
             ->update(['actif' => false]);
 
@@ -69,13 +73,13 @@ class UtilisateursServicesTest extends TestCase
             ->assertStatus(422);
 
         $operateur = $this->adminService();
-        $permission = \App\Models\Permission::where('code', 'utilisateurs.gerer')->first();
-        $role = \App\Models\Role::where('code', 'admin_service')->first();
-        \Illuminate\Support\Facades\DB::table('role_permission')->updateOrInsert([
+        $permission = Permission::where('code', 'utilisateurs.gerer')->first();
+        $role = Role::where('code', 'admin_service')->first();
+        DB::table('role_permission')->updateOrInsert([
             'id_role' => $role->id_role,
             'id_permission' => $permission->id_permission,
         ]);
-        \App\Models\Utilisateur::viderCachePermissions('admin_service');
+        Utilisateur::viderCachePermissions('admin_service');
 
         $this->connecter($operateur)
             ->deleteJson("/api/admin/utilisateurs/{$gardien->id_utilisateur}")
@@ -92,11 +96,11 @@ class UtilisateursServicesTest extends TestCase
             ->assertOk()
             ->assertJson(['message' => 'Compte supprimé.']);
 
-        $this->assertNotNull(\App\Models\Utilisateur::withTrashed()->find($neuf->id_utilisateur)?->supprime_le);
+        $this->assertNotNull(Utilisateur::withTrashed()->find($neuf->id_utilisateur)?->supprime_le);
         $this->assertDatabaseMissing('utilisateurs', [
             'id_utilisateur' => $neuf->id_utilisateur,
-            'email'          => 'neuf@itassel.test',
-            'supprime_le'    => null,
+            'email' => 'neuf@itassel.test',
+            'supprime_le' => null,
         ]);
 
         $utilise = $this->adminService();
@@ -129,10 +133,10 @@ class UtilisateursServicesTest extends TestCase
         $transverse = Service::firstOrCreate(['nom_service' => Service::TOUS_LES_DOMAINES]);
 
         $this->postJson('/api/admin/utilisateurs', [
-            'nom'        => 'Transverse',
-            'prenom'     => 'Admin',
-            'email'      => 'transverse@itassel.test',
-            'role'       => 'admin_service',
+            'nom' => 'Transverse',
+            'prenom' => 'Admin',
+            'email' => 'transverse@itassel.test',
+            'role' => 'admin_service',
             'id_service' => $transverse->id_service,
         ])->assertUnprocessable();
 

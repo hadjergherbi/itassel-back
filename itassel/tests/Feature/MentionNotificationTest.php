@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 class MentionNotificationTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -27,7 +27,7 @@ class MentionNotificationTest extends TestCase
 
         $idNote = $this->connecter($auteur)
             ->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
-                'contenu'  => 'Merci de relire @Amine Kaci.',
+                'contenu' => 'Merci de relire @Amine Kaci.',
                 'mentions' => [$mentionne->id_utilisateur],
             ])
             ->assertCreated()
@@ -56,12 +56,12 @@ class MentionNotificationTest extends TestCase
 
         $this->connecter($auteur);
         $idNote = $this->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
-            'contenu'  => 'Pour le premier.',
+            'contenu' => 'Pour le premier.',
             'mentions' => [$premier->id_utilisateur],
         ])->assertCreated()->json('note.id_note');
 
         $this->putJson("/api/admin/doleances/{$doleance->reference}/notes/{$idNote}", [
-            'contenu'  => 'Pour les deux.',
+            'contenu' => 'Pour les deux.',
             'mentions' => [$premier->id_utilisateur, $second->id_utilisateur],
         ])->assertOk();
 
@@ -82,7 +82,7 @@ class MentionNotificationTest extends TestCase
 
         $idNote = $this->connecter($auteur)
             ->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
-                'contenu'  => 'Pouvez-vous vérifier ce point ?',
+                'contenu' => 'Pouvez-vous vérifier ce point ?',
                 'mentions' => [$mentionne->id_utilisateur],
             ])
             ->assertCreated()

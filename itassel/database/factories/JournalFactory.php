@@ -14,10 +14,10 @@ class JournalFactory extends Factory
     {
         return [
             'date_action' => now(),
-            'compte'      => fake()->safeEmail(),
-            'action'      => 'connexion',
-            'adresse_ip'  => '127.0.0.1',
-            'resultat'    => 'succes',
+            'compte' => fake()->safeEmail(),
+            'action' => 'connexion',
+            'adresse_ip' => '127.0.0.1',
+            'resultat' => 'succes',
         ];
     }
 }

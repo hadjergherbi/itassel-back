@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 class JournalTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -99,17 +99,17 @@ class JournalTest extends TestCase
     {
         $this->connecter($this->superAdmin());
         Journal::factory()->create([
-            'action'      => 'connexion_echec',
-            'categorie'   => 'connexion',
-            'resultat'    => 'echec',
-            'compte'      => 'a***z@itassel.test',
-            'adresse_ip'  => '10.0.0.4',
+            'action' => 'connexion_echec',
+            'categorie' => 'connexion',
+            'resultat' => 'echec',
+            'compte' => 'a***z@itassel.test',
+            'adresse_ip' => '10.0.0.4',
             'date_action' => now(),
         ]);
         Journal::factory()->create([
-            'action'      => 'connexion',
-            'categorie'   => 'connexion',
-            'resultat'    => 'echec',
+            'action' => 'connexion',
+            'categorie' => 'connexion',
+            'resultat' => 'echec',
             'date_action' => now()->subMinute(),
         ]);
 
@@ -123,15 +123,15 @@ class JournalTest extends TestCase
     {
         $this->connecter($this->superAdmin());
         Journal::factory()->create([
-            'action'      => 'connexion_echec',
-            'categorie'   => 'connexion',
-            'resultat'    => 'echec',
+            'action' => 'connexion_echec',
+            'categorie' => 'connexion',
+            'resultat' => 'echec',
             'date_action' => now()->subDays(2),
         ]);
         Journal::factory()->create([
-            'action'      => 'connexion_echec',
-            'categorie'   => 'connexion',
-            'resultat'    => 'echec',
+            'action' => 'connexion_echec',
+            'categorie' => 'connexion',
+            'resultat' => 'echec',
             'date_action' => now()->subDays(10),
         ]);
 
@@ -154,10 +154,10 @@ class JournalTest extends TestCase
 
         for ($i = 0; $i < 2; $i++) {
             Journal::factory()->create([
-                'action'      => 'connexion_echec',
-                'categorie'   => 'connexion',
-                'resultat'    => 'echec',
-                'adresse_ip'  => '192.0.2.10',
+                'action' => 'connexion_echec',
+                'categorie' => 'connexion',
+                'resultat' => 'echec',
+                'adresse_ip' => '192.0.2.10',
                 'date_action' => now(),
             ]);
         }
@@ -167,10 +167,10 @@ class JournalTest extends TestCase
             ->assertJsonPath('ip_suspectes', []);
 
         Journal::factory()->create([
-            'action'      => 'connexion_echec',
-            'categorie'   => 'connexion',
-            'resultat'    => 'echec',
-            'adresse_ip'  => '192.0.2.10',
+            'action' => 'connexion_echec',
+            'categorie' => 'connexion',
+            'resultat' => 'echec',
+            'adresse_ip' => '192.0.2.10',
             'date_action' => now(),
         ]);
 
@@ -200,13 +200,13 @@ class JournalTest extends TestCase
     {
         $this->connecter($this->superAdmin());
         $doleance = $this->doleance([
-            'statut'    => Statut::EN_COURS,
+            'statut' => Statut::EN_COURS,
             'reference' => 'ITS-2026-7711',
         ]);
 
         $this->postJson("/api/admin/doleances/{$doleance->reference}/statut", [
             'id_statut' => Statut::parCode(Statut::RESOLUE)->id_statut,
-            'message'   => 'Traité.',
+            'message' => 'Traité.',
         ])->assertOk();
 
         $ligne = $this->getJson('/api/admin/journaux?action=changement_statut')
@@ -225,13 +225,13 @@ class JournalTest extends TestCase
     {
         $service = Service::factory()->create(['nom_service' => 'Service effacé']);
         Journal::factory()->create([
-            'action'     => 'suppression_service',
-            'categorie'  => 'parametre',
-            'resultat'   => 'succes',
-            'compte'     => 'admin@itassel.test',
+            'action' => 'suppression_service',
+            'categorie' => 'parametre',
+            'resultat' => 'succes',
+            'compte' => 'admin@itassel.test',
             'cible_type' => Service::class,
-            'cible_id'   => $service->id_service,
-            'detail'     => $service->nom_service,
+            'cible_id' => $service->id_service,
+            'detail' => $service->nom_service,
         ]);
         $service->delete();
 
@@ -246,16 +246,16 @@ class JournalTest extends TestCase
     {
         $this->connecter($this->superAdmin());
         Journal::factory()->create([
-            'action'    => 'connexion',
+            'action' => 'connexion',
             'categorie' => 'connexion',
-            'resultat'  => 'succes',
-            'compte'    => 'normal@itassel.test',
+            'resultat' => 'succes',
+            'compte' => 'normal@itassel.test',
         ]);
         Journal::factory()->create([
-            'action'    => 'export_pdf',
+            'action' => 'export_pdf',
             'categorie' => 'export',
-            'resultat'  => 'succes',
-            'compte'    => 'export@itassel.test',
+            'resultat' => 'succes',
+            'compte' => 'export@itassel.test',
         ]);
 
         $sensibles = collect($this->getJson('/api/admin/journaux?sensible=1')->assertOk()->json('data'));
@@ -273,24 +273,24 @@ class JournalTest extends TestCase
         $this->connecter($this->superAdmin());
         $compte = 'agent.journal@itassel.test';
         $courante = Journal::factory()->create([
-            'compte'      => $compte,
-            'action'      => 'connexion',
-            'categorie'   => 'connexion',
-            'resultat'    => 'succes',
+            'compte' => $compte,
+            'action' => 'connexion',
+            'categorie' => 'connexion',
+            'resultat' => 'succes',
             'date_action' => now(),
         ]);
         $memeJour = Journal::factory()->create([
-            'compte'      => $compte,
-            'action'      => 'deconnexion',
-            'categorie'   => 'connexion',
-            'resultat'    => 'succes',
+            'compte' => $compte,
+            'action' => 'deconnexion',
+            'categorie' => 'connexion',
+            'resultat' => 'succes',
             'date_action' => now(),
         ]);
         Journal::factory()->create([
-            'compte'      => 'autre@itassel.test',
-            'action'      => 'connexion',
-            'categorie'   => 'connexion',
-            'resultat'    => 'succes',
+            'compte' => 'autre@itassel.test',
+            'action' => 'connexion',
+            'categorie' => 'connexion',
+            'resultat' => 'succes',
             'date_action' => now(),
         ]);
 

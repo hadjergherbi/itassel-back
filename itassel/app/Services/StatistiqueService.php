@@ -69,32 +69,32 @@ class StatistiqueService
             }
 
             return [
-                'id_service'  => $service->id_service,
+                'id_service' => $service->id_service,
                 'nom_service' => $service->nom_service,
-                'total'       => (clone $base)->count(),
-                'nouvelles'   => $nouvelles,
-                'en_cours'    => $enCours,
-                'resolues'    => $resolues,
-                'autres'      => $autres,
-                'a_traiter'   => $nouvelles,
+                'total' => (clone $base)->count(),
+                'nouvelles' => $nouvelles,
+                'en_cours' => $enCours,
+                'resolues' => $resolues,
+                'autres' => $autres,
+                'a_traiter' => $nouvelles,
             ];
         })->values();
 
         $denom = $resolues + ($parCode[Statut::NON_RETENUE] ?? 0);
 
         return [
-            'nouvelles'                 => $nouvelles,
-            'en_cours'                  => $parCode[Statut::EN_COURS] ?? 0,
-            'resolues'                  => $resolues,
-            'total'                     => $total,
-            'depuis'                    => $depuis ? substr((string) $depuis, 0, 10) : now()->toDateString(),
+            'nouvelles' => $nouvelles,
+            'en_cours' => $parCode[Statut::EN_COURS] ?? 0,
+            'resolues' => $resolues,
+            'total' => $total,
+            'depuis' => $depuis ? substr((string) $depuis, 0, 10) : now()->toDateString(),
             'reaffectations_en_attente' => Reaffectation::where('etat', 'en_attente')->count(),
-            'services'                  => Service::count(),
-            'utilisateurs_actifs'       => Utilisateur::where('actif', true)->whereNotNull('mot_de_passe_defini_le')->count(),
-            'comptes_desactives'        => Utilisateur::where('actif', false)->count(),
-            'invitations_en_attente'    => Utilisateur::where('actif', true)->whereNull('mot_de_passe_defini_le')->count(),
-            'par_service'               => $parService,
-            'taux_resolution'           => $denom > 0 ? round($resolues / $denom, 4) : null,
+            'services' => Service::count(),
+            'utilisateurs_actifs' => Utilisateur::where('actif', true)->whereNotNull('mot_de_passe_defini_le')->count(),
+            'comptes_desactives' => Utilisateur::where('actif', false)->count(),
+            'invitations_en_attente' => Utilisateur::where('actif', true)->whereNull('mot_de_passe_defini_le')->count(),
+            'par_service' => $parService,
+            'taux_resolution' => $denom > 0 ? round($resolues / $denom, 4) : null,
         ];
     }
 
@@ -144,13 +144,13 @@ class StatistiqueService
             ->count();
 
         return array_merge($parIssue, [
-            'termines_total'  => array_sum($parIssue) + $aReclasserTotal,
-            'a_reclasser'     => [
-                'total'                 => $aReclasserTotal,
-                'anciens_classements'   => $anciens,
+            'termines_total' => array_sum($parIssue) + $aReclasserTotal,
+            'a_reclasser' => [
+                'total' => $aReclasserTotal,
+                'anciens_classements' => $anciens,
                 'resolus_a_requalifier' => $requalifier,
             ],
-            'ouverts'         => $ouverts,
+            'ouverts' => $ouverts,
             'taux_resolution' => $denom > 0 ? round($resoluesRec / $denom, 4) : null,
         ]);
     }
@@ -160,7 +160,7 @@ class StatistiqueService
         $depuis = static::debutActivite($periode);
         $driver = Schema::getConnection()->getDriverName();
         $exprJour = $driver === 'sqlite'
-            ? "date(date_action)"
+            ? 'date(date_action)'
             : 'DATE(date_action)';
 
         $fenetre = Journal::where('date_action', '>=', $depuis);
@@ -205,36 +205,36 @@ class StatistiqueService
             ->get();
 
         return [
-            'periode'                          => $periode,
-            'depuis'                           => $depuis->toDateString(),
-            'actions_aujourdhui'              => (clone $fenetre)->count(),
-            'connexions_reussies_aujourdhui'  => (clone $fenetre)->where('action', 'connexion')->where('resultat', 'succes')->count(),
+            'periode' => $periode,
+            'depuis' => $depuis->toDateString(),
+            'actions_aujourdhui' => (clone $fenetre)->count(),
+            'connexions_reussies_aujourdhui' => (clone $fenetre)->where('action', 'connexion')->where('resultat', 'succes')->count(),
             'utilisateurs_distincts_aujourdhui' => (clone $fenetre)->whereNotNull('id_utilisateur')->distinct()->count('id_utilisateur'),
-            'echecs_connexion_aujourdhui'     => static::echecsConnexion(clone $fenetre)->count(),
-            'comptes_verrouilles'             => (clone $fenetre)->where('action', 'compte_verrouille')->count(),
-            'exports'                         => (clone $fenetre)->where('categorie', 'export')->count(),
-            'comptes_actifs'                  => $comptesActifs,
-            'utilisateurs_actifs'             => $comptesActifs,
-            'comptes_desactives'              => Utilisateur::where('actif', false)->count(),
-            'par_jour'                        => collect($parJour)->map(fn ($total, $jour) => [
-                'jour'  => $jour,
+            'echecs_connexion_aujourdhui' => static::echecsConnexion(clone $fenetre)->count(),
+            'comptes_verrouilles' => (clone $fenetre)->where('action', 'compte_verrouille')->count(),
+            'exports' => (clone $fenetre)->where('categorie', 'export')->count(),
+            'comptes_actifs' => $comptesActifs,
+            'utilisateurs_actifs' => $comptesActifs,
+            'comptes_desactives' => Utilisateur::where('actif', false)->count(),
+            'par_jour' => collect($parJour)->map(fn ($total, $jour) => [
+                'jour' => $jour,
                 'total' => $total,
             ])->values(),
-            'par_categorie'                   => collect($categories)->map(fn (string $categorie) => [
+            'par_categorie' => collect($categories)->map(fn (string $categorie) => [
                 'categorie' => $categorie,
-                'total'     => (int) ($totauxCategorie[$categorie] ?? 0),
+                'total' => (int) ($totauxCategorie[$categorie] ?? 0),
             ])->values(),
-            'ip_suspectes'                    => $ipSuspectes->map(fn ($ligne) => [
-                'adresse_ip'         => $ligne->adresse_ip,
-                'echecs'             => (int) $ligne->echecs,
+            'ip_suspectes' => $ipSuspectes->map(fn ($ligne) => [
+                'adresse_ip' => $ligne->adresse_ip,
+                'echecs' => (int) $ligne->echecs,
                 'derniere_tentative' => Carbon::parse($ligne->derniere_tentative)->toIso8601String(),
             ])->values(),
-            'echecs_recents'                  => $echecs->map(fn (Journal $j) => [
+            'echecs_recents' => $echecs->map(fn (Journal $j) => [
                 'date_action' => $j->date_action,
-                'compte'      => $j->compte,
-                'adresse_ip'  => $j->adresse_ip,
-                'motif'       => $j->detail,
-                'action'      => $j->action,
+                'compte' => $j->compte,
+                'adresse_ip' => $j->adresse_ip,
+                'motif' => $j->detail,
+                'action' => $j->action,
             ])->values(),
         ];
     }
@@ -242,8 +242,8 @@ class StatistiqueService
     private static function debutActivite(string $periode): Carbon
     {
         return match ($periode) {
-            '7j'    => now()->subDays(7)->startOfDay(),
-            '30j'   => now()->subDays(30)->startOfDay(),
+            '7j' => now()->subDays(7)->startOfDay(),
+            '30j' => now()->subDays(30)->startOfDay(),
             default => now()->startOfDay(),
         };
     }
@@ -276,31 +276,31 @@ class StatistiqueService
         $idResolue = Statut::parCode(Statut::RESOLUE)->id_statut;
 
         return [
-            'periode'     => [
-                'code'       => $periode['code'],
+            'periode' => [
+                'code' => $periode['code'],
                 'date_debut' => $periode['date_debut'],
-                'date_fin'   => $periode['date_fin'],
-                'libelle'    => $periode['libelle'],
+                'date_fin' => $periode['date_fin'],
+                'libelle' => $periode['libelle'],
             ],
             'indicateurs' => [
-                'nouvelles'                  => $totauxParCode[Statut::NOUVELLE] ?? 0,
-                'en_cours'                   => $totauxParCode[Statut::EN_COURS] ?? 0,
-                'resolues'                   => (clone $deposees)->where('id_statut', $idResolue)->count(),
-                'total'                      => (clone $deposees)->count(),
-                'depuis'                     => $depuis ? substr((string) $depuis, 0, 10) : now()->toDateString(),
-                'delai_moyen_jours'          => static::delaiMoyen((clone $visibles), $periode['debut'], $periode['fin']),
+                'nouvelles' => $totauxParCode[Statut::NOUVELLE] ?? 0,
+                'en_cours' => $totauxParCode[Statut::EN_COURS] ?? 0,
+                'resolues' => (clone $deposees)->where('id_statut', $idResolue)->count(),
+                'total' => (clone $deposees)->count(),
+                'depuis' => $depuis ? substr((string) $depuis, 0, 10) : now()->toDateString(),
+                'delai_moyen_jours' => static::delaiMoyen((clone $visibles), $periode['debut'], $periode['fin']),
                 'delai_moyen_tendance_jours' => static::delaiTendance(clone $visibles),
             ],
-            'par_mois'            => static::parMois(clone $visibles, $periode['nb_mois']),
-            'repartition'         => $statuts->map(fn (Statut $statut) => [
-                'code'    => $statut->code,
+            'par_mois' => static::parMois(clone $visibles, $periode['nb_mois']),
+            'repartition' => $statuts->map(fn (Statut $statut) => [
+                'code' => $statut->code,
                 'libelle' => $statut->libelle,
-                'total'   => $totauxParCode[$statut->code] ?? 0,
+                'total' => $totauxParCode[$statut->code] ?? 0,
             ])->values(),
-            'repartition_nature'  => static::repartitionNature(clone $deposees),
-            'priorites'           => static::priorites(clone $visibles),
-            'dernieres'           => static::dernieres(clone $visibles),
-            'mes_reaffectations'  => static::mesReaffectations($utilisateur),
+            'repartition_nature' => static::repartitionNature(clone $deposees),
+            'priorites' => static::priorites(clone $visibles),
+            'dernieres' => static::dernieres(clone $visibles),
+            'mes_reaffectations' => static::mesReaffectations($utilisateur),
             'mes_reaffectations_en_attente' => Reaffectation::query()
                 ->where('id_demandeur', $utilisateur->id_utilisateur)
                 ->where('etat', 'en_attente')
@@ -327,9 +327,9 @@ class StatistiqueService
             $mois = $debut->copy()->addMonths($i);
             $cle = $mois->format('Y-m');
             $parMois[] = [
-                'mois'     => $cle,
-                'libelle'  => self::LIBELLES_MOIS[(int) $mois->format('n')],
-                'total'    => (int) ($totaux[$cle] ?? 0),
+                'mois' => $cle,
+                'libelle' => self::LIBELLES_MOIS[(int) $mois->format('n')],
+                'total' => (int) ($totaux[$cle] ?? 0),
                 'en_cours' => $cle === $moisCourant,
             ];
         }
@@ -423,8 +423,8 @@ class StatistiqueService
             ->get(['id_nature', 'libelle'])
             ->map(fn (Nature $nature) => [
                 'id_nature' => $nature->id_nature,
-                'libelle'   => $nature->libelle,
-                'total'     => (int) ($totaux[$nature->id_nature] ?? 0),
+                'libelle' => $nature->libelle,
+                'total' => (int) ($totaux[$nature->id_nature] ?? 0),
             ])
             ->sortByDesc('total')
             ->values()
@@ -447,7 +447,7 @@ class StatistiqueService
                 ->count(),
             'informations_sans_reponse' => DoleanceFiltre::appliquerInformationsSansReponse(clone $visibles)->count(),
             'seuils' => [
-                'nouvelle_jours'    => $nouvelleJours,
+                'nouvelle_jours' => $nouvelleJours,
                 'information_jours' => $informationJours,
             ],
         ];
@@ -472,13 +472,13 @@ class StatistiqueService
                 $niveau = $age >= $rouge ? 'rouge' : ($age >= $orange ? 'orange' : 'normal');
 
                 return [
-                    'reference'  => $doleance->reference,
-                    'nom'        => $doleance->nom,
-                    'prenom'     => $doleance->prenom,
-                    'nature'     => $doleance->nature?->libelle,
+                    'reference' => $doleance->reference,
+                    'nom' => $doleance->nom,
+                    'prenom' => $doleance->prenom,
+                    'nature' => $doleance->nature?->libelle,
                     'date_depot' => $doleance->date_depot,
-                    'statut'     => $doleance->statut?->versApi(),
-                    'age_jours'  => $age,
+                    'statut' => $doleance->statut?->versApi(),
+                    'age_jours' => $age,
                     'niveau_age' => $niveau,
                 ];
             })->values()->all();
@@ -507,15 +507,15 @@ class StatistiqueService
                 }
 
                 return [
-                    'id_reaffectation'     => $demande->id_reaffectation,
-                    'reference'            => $demande->doleance?->reference,
-                    'service_propose'      => $demande->servicePropose?->nom_service,
-                    'service_destination'  => $demande->serviceDestination?->nom_service,
-                    'etat'                 => $demande->etat,
-                    'motif'                => $demande->motif,
-                    'motif_refus'          => $motifRefus,
-                    'date_demande'         => $demande->date_demande,
-                    'date_decision'        => $demande->date_decision,
+                    'id_reaffectation' => $demande->id_reaffectation,
+                    'reference' => $demande->doleance?->reference,
+                    'service_propose' => $demande->servicePropose?->nom_service,
+                    'service_destination' => $demande->serviceDestination?->nom_service,
+                    'etat' => $demande->etat,
+                    'motif' => $demande->motif,
+                    'motif_refus' => $motifRefus,
+                    'date_demande' => $demande->date_demande,
+                    'date_decision' => $demande->date_decision,
                 ];
             })->values()->all();
     }

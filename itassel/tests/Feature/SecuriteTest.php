@@ -19,7 +19,7 @@ use Tests\TestCase;
 
 class SecuriteTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -41,7 +41,7 @@ class SecuriteTest extends TestCase
         $this->superAdmin(['email' => 'expire@itassel.test']);
 
         $reponse = $this->postJson('/api/admin/login', [
-            'email'        => 'expire@itassel.test',
+            'email' => 'expire@itassel.test',
             'mot_de_passe' => 'Itassel2026!',
         ])->assertOk()->assertJsonStructure(['token', 'utilisateur', 'expire_le']);
 
@@ -65,7 +65,7 @@ class SecuriteTest extends TestCase
         $this->travel(61)->seconds();
 
         $bloque = $this->postJson('/api/admin/login', [
-            'email'        => 'verrou@itassel.test',
+            'email' => 'verrou@itassel.test',
             'mot_de_passe' => 'Itassel2026!',
         ]);
 
@@ -78,7 +78,7 @@ class SecuriteTest extends TestCase
         $this->travel(61)->seconds();
 
         $bloque = $this->postJson('/api/admin/login', [
-            'email'        => 'absent.verrou@itassel.test',
+            'email' => 'absent.verrou@itassel.test',
             'mot_de_passe' => 'Itassel2026!',
         ]);
 
@@ -93,7 +93,7 @@ class SecuriteTest extends TestCase
         $this->travel(15)->minutes();
 
         $this->postJson('/api/admin/login', [
-            'email'        => 'attendre@itassel.test',
+            'email' => 'attendre@itassel.test',
             'mot_de_passe' => 'Itassel2026!',
         ])->assertOk()->assertJsonStructure(['token', 'expire_le']);
     }
@@ -105,7 +105,7 @@ class SecuriteTest extends TestCase
         $this->echouerLogin(2, 'reset@itassel.test', 'mauvais');
 
         $this->postJson('/api/admin/login', [
-            'email'        => 'reset@itassel.test',
+            'email' => 'reset@itassel.test',
             'mot_de_passe' => 'Itassel2026!',
         ])->assertOk();
 
@@ -114,7 +114,7 @@ class SecuriteTest extends TestCase
         $this->travel(61)->seconds();
 
         $this->postJson('/api/admin/login', [
-            'email'        => 'reset@itassel.test',
+            'email' => 'reset@itassel.test',
             'mot_de_passe' => 'mauvais',
         ])->assertStatus(429);
     }
@@ -224,10 +224,10 @@ class SecuriteTest extends TestCase
         $doleance = $this->doleance(['statut' => Statut::INFORMATION_DEMANDEE]);
         $auteur = $this->superAdmin();
         Complement::factory()->create([
-            'id_doleance'  => $doleance->id_doleance,
-            'id_auteur'    => $auteur->id_utilisateur,
+            'id_doleance' => $doleance->id_doleance,
+            'id_auteur' => $auteur->id_utilisateur,
             'piece_exigee' => true,
-            'etat'         => 'en_attente',
+            'etat' => 'en_attente',
         ]);
 
         $jeton = Str::random(48);
@@ -239,10 +239,10 @@ class SecuriteTest extends TestCase
         $this->assertStringContainsString('Exif', $jpegExif);
 
         $reponse = $this->post('/api/suivi/repondre-complement', [
-            'message'      => 'Voici le justificatif demandé.',
+            'message' => 'Voici le justificatif demandé.',
             'piece_jointe' => new UploadedFile($cheminExif, 'photo.jpg', 'image/jpeg', null, true),
         ], [
-            'Accept'        => 'application/json',
+            'Accept' => 'application/json',
             'X-Suivi-Token' => $jeton,
         ]);
 
@@ -281,7 +281,7 @@ class SecuriteTest extends TestCase
     {
         for ($i = 0; $i < $fois; $i++) {
             $this->postJson('/api/admin/login', [
-                'email'        => $email,
+                'email' => $email,
                 'mot_de_passe' => $motDePasse,
             ])->assertStatus(422);
         }

@@ -10,6 +10,7 @@ class PieceJointe extends Model
     use HasFactory;
 
     protected $table = 'pieces_jointes';
+
     protected $primaryKey = 'id_piece';
 
     protected $fillable = [

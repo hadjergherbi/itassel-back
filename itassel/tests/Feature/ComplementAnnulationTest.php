@@ -6,6 +6,7 @@ use App\Mail\ComplementAnnuleMail;
 use App\Models\Complement;
 use App\Models\Historique;
 use App\Models\Journal;
+use App\Models\Reaffectation;
 use App\Models\Service;
 use App\Models\Statut;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,7 +16,7 @@ use Tests\TestCase;
 
 class ComplementAnnulationTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -84,7 +85,7 @@ class ComplementAnnulationTest extends TestCase
         $doleance = $this->doleance(['id_service' => $destination->id_service]);
         $complement = Complement::factory()->create(['id_doleance' => $doleance->id_doleance]);
 
-        \App\Models\Reaffectation::factory()->create([
+        Reaffectation::factory()->create([
             'id_doleance' => $doleance->id_doleance,
             'id_demandeur' => $admin->id_utilisateur,
             'etat' => 'acceptee',

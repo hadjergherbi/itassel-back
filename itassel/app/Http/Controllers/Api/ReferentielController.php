@@ -17,7 +17,7 @@ class ReferentielController extends Controller
     {
         return response()->json([
             'services' => Service::assignables()->orderBy('nom_service')->get(['id_service', 'nom_service']),
-            'natures'  => Nature::publiques()->orderBy('libelle')->get(['id_nature', 'libelle']),
+            'natures' => Nature::publiques()->orderBy('libelle')->get(['id_nature', 'libelle']),
             'qualites' => Qualite::selectionnables()->get(['id_qualite', 'libelle']),
         ]);
     }

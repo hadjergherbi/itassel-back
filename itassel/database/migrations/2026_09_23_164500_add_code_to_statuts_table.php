@@ -14,18 +14,18 @@ return new class extends Migration
         });
 
         $correspondances = [
-            'Nouvelle'                 => ['nouvelle', 'Nouvelle doléance'],
-            'En cours de traitement'   => ['en_cours', 'En cours'],
-            'Information demandée'     => ['information_demandee', 'Information demandée'],
-            'Traitée'                  => ['resolue', 'Résolu'],
-            'Clôturée'                 => ['cloturee', 'Clôturée'],
-            'Non fondée'               => ['non_fondee', 'Doléance non fondée'],
-            'Double doléance'          => ['double', 'Double doléance'],
+            'Nouvelle' => ['nouvelle', 'Nouvelle doléance'],
+            'En cours de traitement' => ['en_cours', 'En cours'],
+            'Information demandée' => ['information_demandee', 'Information demandée'],
+            'Traitée' => ['resolue', 'Résolu'],
+            'Clôturée' => ['cloturee', 'Clôturée'],
+            'Non fondée' => ['non_fondee', 'Doléance non fondée'],
+            'Double doléance' => ['double', 'Double doléance'],
         ];
 
         foreach ($correspondances as $ancienLibelle => [$code, $nouveauLibelle]) {
             DB::table('statuts')->where('libelle', $ancienLibelle)->update([
-                'code'    => $code,
+                'code' => $code,
                 'libelle' => $nouveauLibelle,
             ]);
         }
@@ -38,13 +38,13 @@ return new class extends Migration
     public function down(): void
     {
         $retours = [
-            'nouvelle'              => 'Nouvelle',
-            'en_cours'              => 'En cours de traitement',
-            'information_demandee'  => 'Information demandée',
-            'resolue'               => 'Traitée',
-            'cloturee'              => 'Clôturée',
-            'non_fondee'            => 'Non fondée',
-            'double'                => 'Double doléance',
+            'nouvelle' => 'Nouvelle',
+            'en_cours' => 'En cours de traitement',
+            'information_demandee' => 'Information demandée',
+            'resolue' => 'Traitée',
+            'cloturee' => 'Clôturée',
+            'non_fondee' => 'Non fondée',
+            'double' => 'Double doléance',
         ];
 
         foreach ($retours as $code => $ancienLibelle) {
@@ -57,4 +57,3 @@ return new class extends Migration
         });
     }
 };
-

@@ -18,7 +18,7 @@ class ErreurValidation extends RuntimeException
     {
         $corps = [
             'message' => $this->getMessage(),
-            'errors'  => [$this->champ => [$this->getMessage()]],
+            'errors' => [$this->champ => [$this->getMessage()]],
         ];
 
         if ($this->codeErreur) {

@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class TableauDeBordServiceTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -89,29 +89,29 @@ class TableauDeBordServiceTest extends TestCase
 
         $nouvelleOk = $this->doleance([
             'id_service' => $service->id_service,
-            'statut'     => Statut::NOUVELLE,
+            'statut' => Statut::NOUVELLE,
             'date_depot' => now()->subDays(2),
         ]);
         $nouvelleRetard = $this->doleance([
             'id_service' => $service->id_service,
-            'statut'     => Statut::NOUVELLE,
+            'statut' => Statut::NOUVELLE,
             'date_depot' => now()->subDays(6),
         ]);
         $info = $this->doleance([
             'id_service' => $service->id_service,
-            'statut'     => Statut::INFORMATION_DEMANDEE,
+            'statut' => Statut::INFORMATION_DEMANDEE,
             'date_depot' => now()->subDays(20),
         ]);
         Historique::create([
-            'date_evenement'    => now()->subDays(16),
-            'type_evenement'    => 'changement_statut',
-            'id_doleance'       => $info->id_doleance,
-            'id_statut_apres'   => $idInfo,
+            'date_evenement' => now()->subDays(16),
+            'type_evenement' => 'changement_statut',
+            'id_doleance' => $info->id_doleance,
+            'id_statut_apres' => $idInfo,
             'visible_demandeur' => false,
         ]);
         Complement::factory()->recu()->create([
             'id_doleance' => $nouvelleOk->id_doleance,
-            'id_auteur'   => $admin->id_utilisateur,
+            'id_auteur' => $admin->id_utilisateur,
         ]);
 
         $json = $this->connecter($admin)->getJson('/api/admin/tableau-de-bord')->assertOk()->json();
@@ -135,14 +135,14 @@ class TableauDeBordServiceTest extends TestCase
 
         $doleance = $this->doleance([
             'id_service' => $service->id_service,
-            'statut'     => Statut::RESOLUE,
+            'statut' => Statut::RESOLUE,
             'date_depot' => now()->subDays(10),
         ]);
         Historique::create([
-            'date_evenement'    => now()->subDays(4),
-            'type_evenement'    => 'changement_statut',
-            'id_doleance'       => $doleance->id_doleance,
-            'id_statut_apres'   => $idResolue,
+            'date_evenement' => now()->subDays(4),
+            'type_evenement' => 'changement_statut',
+            'id_doleance' => $doleance->id_doleance,
+            'id_statut_apres' => $idResolue,
             'visible_demandeur' => true,
         ]);
 
@@ -157,21 +157,21 @@ class TableauDeBordServiceTest extends TestCase
 
         $ancienne = $this->doleance([
             'id_service' => $service->id_service,
-            'statut'     => Statut::NOUVELLE,
+            'statut' => Statut::NOUVELLE,
             'date_depot' => now()->subDays(12),
-            'nom'        => 'Ancienne',
+            'nom' => 'Ancienne',
         ]);
         $this->doleance([
             'id_service' => $service->id_service,
-            'statut'     => Statut::EN_COURS,
+            'statut' => Statut::EN_COURS,
             'date_depot' => now()->subDays(3),
-            'nom'        => 'Recente',
+            'nom' => 'Recente',
         ]);
         $this->doleance([
             'id_service' => $service->id_service,
-            'statut'     => Statut::RESOLUE,
+            'statut' => Statut::RESOLUE,
             'date_depot' => now()->subDays(20),
-            'nom'        => 'Resolue',
+            'nom' => 'Resolue',
         ]);
 
         $json = $this->connecter($admin)->getJson('/api/admin/tableau-de-bord')->assertOk()->json();
@@ -193,25 +193,25 @@ class TableauDeBordServiceTest extends TestCase
         $autreDossier = $this->doleance(['id_service' => $jeunesse->id_service]);
 
         $mienne = Reaffectation::factory()->create([
-            'id_doleance'        => $doleance->id_doleance,
-            'id_demandeur'       => $admin->id_utilisateur,
+            'id_doleance' => $doleance->id_doleance,
+            'id_demandeur' => $admin->id_utilisateur,
             'id_service_propose' => $jeunesse->id_service,
-            'etat'               => 'refusee',
-            'date_decision'      => now(),
-            'motif'              => 'Hors périmètre',
+            'etat' => 'refusee',
+            'date_decision' => now(),
+            'motif' => 'Hors périmètre',
         ]);
         Historique::create([
-            'date_evenement'    => now(),
-            'type_evenement'    => 'reaffectation_refusee',
-            'detail'            => 'Refus : compétence jeunesse',
-            'id_doleance'       => $doleance->id_doleance,
+            'date_evenement' => now(),
+            'type_evenement' => 'reaffectation_refusee',
+            'detail' => 'Refus : compétence jeunesse',
+            'id_doleance' => $doleance->id_doleance,
             'visible_demandeur' => false,
         ]);
         Reaffectation::factory()->create([
-            'id_doleance'        => $autreDossier->id_doleance,
-            'id_demandeur'       => $autre->id_utilisateur,
+            'id_doleance' => $autreDossier->id_doleance,
+            'id_demandeur' => $autre->id_utilisateur,
             'id_service_propose' => $sport->id_service,
-            'etat'               => 'en_attente',
+            'etat' => 'en_attente',
         ]);
 
         $json = $this->connecter($admin)->getJson('/api/admin/tableau-de-bord')->assertOk()->json();
@@ -232,28 +232,28 @@ class TableauDeBordServiceTest extends TestCase
 
         $this->doleance([
             'id_service' => $service->id_service,
-            'id_nature'  => $natureA->id_nature,
+            'id_nature' => $natureA->id_nature,
             'date_depot' => now()->subDays(8),
-            'reference'  => 'ITS-2026-1001',
+            'reference' => 'ITS-2026-1001',
         ]);
         $this->doleance([
             'id_service' => $service->id_service,
-            'id_nature'  => $natureB->id_nature,
+            'id_nature' => $natureB->id_nature,
             'date_depot' => now()->subDays(1),
-            'reference'  => 'ITS-2026-1002',
+            'reference' => 'ITS-2026-1002',
         ]);
         $info = $this->doleance([
             'id_service' => $service->id_service,
-            'id_nature'  => $natureA->id_nature,
-            'statut'     => Statut::INFORMATION_DEMANDEE,
+            'id_nature' => $natureA->id_nature,
+            'statut' => Statut::INFORMATION_DEMANDEE,
             'date_depot' => now()->subDays(20),
-            'reference'  => 'ITS-2026-1003',
+            'reference' => 'ITS-2026-1003',
         ]);
         Historique::create([
-            'date_evenement'    => now()->subDays(16),
-            'type_evenement'    => 'changement_statut',
-            'id_doleance'       => $info->id_doleance,
-            'id_statut_apres'   => $idInfo,
+            'date_evenement' => now()->subDays(16),
+            'type_evenement' => 'changement_statut',
+            'id_doleance' => $info->id_doleance,
+            'id_statut_apres' => $idInfo,
             'visible_demandeur' => false,
         ]);
 

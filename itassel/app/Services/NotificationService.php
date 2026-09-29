@@ -53,11 +53,11 @@ class NotificationService
         NotificationItassel::create([
             'type_notification' => $type,
             // La colonne fait 100 caractères (l'email du dépôt peut en faire 120).
-            'destinataire'      => mb_substr($destinataire, 0, 100),
-            'etat_envoi'        => $transmis ? 'transmis' : 'non_transmis',
-            'date_envoi'        => $transmis ? now() : null,
-            'id_doleance'       => $doleance->id_doleance,
-            'id_evenement'      => $idEvenement,
+            'destinataire' => mb_substr($destinataire, 0, 100),
+            'etat_envoi' => $transmis ? 'transmis' : 'non_transmis',
+            'date_envoi' => $transmis ? now() : null,
+            'id_doleance' => $doleance->id_doleance,
+            'id_evenement' => $idEvenement,
         ]);
 
         return $transmis;

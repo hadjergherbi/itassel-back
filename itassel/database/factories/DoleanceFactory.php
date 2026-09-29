@@ -17,19 +17,19 @@ class DoleanceFactory extends Factory
     public function definition(): array
     {
         return [
-            'reference'    => 'ITS-'.now()->year.'-'.str_pad((string) fake()->unique()->numberBetween(0, 999999), 6, '0', STR_PAD_LEFT),
-            'nom'          => fake()->lastName(),
-            'prenom'       => fake()->firstName(),
-            'email'        => fake()->safeEmail(),
-            'telephone'    => '055'.fake()->numerify('#######'),
-            'wilaya'       => fake()->city(),
-            'objet'        => fake()->sentence(4),
-            'description'  => fake()->paragraph(),
-            'date_depot'   => now(),
-            'id_service'   => Service::factory(),
-            'id_statut'    => Statut::factory(),
-            'id_nature'    => Nature::factory(),
-            'id_qualite'   => Qualite::factory(),
+            'reference' => 'ITS-'.now()->year.'-'.str_pad((string) fake()->unique()->numberBetween(0, 999999), 6, '0', STR_PAD_LEFT),
+            'nom' => fake()->lastName(),
+            'prenom' => fake()->firstName(),
+            'email' => fake()->safeEmail(),
+            'telephone' => '055'.fake()->numerify('#######'),
+            'wilaya' => fake()->city(),
+            'objet' => fake()->sentence(4),
+            'description' => fake()->paragraph(),
+            'date_depot' => now(),
+            'id_service' => Service::factory(),
+            'id_statut' => Statut::factory(),
+            'id_nature' => Nature::factory(),
+            'id_qualite' => Qualite::factory(),
         ];
     }
 }

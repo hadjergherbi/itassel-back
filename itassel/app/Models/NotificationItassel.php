@@ -10,6 +10,7 @@ class NotificationItassel extends Model
     use HasFactory;
 
     protected $table = 'notifications_itassel';
+
     protected $primaryKey = 'id_notification';
 
     protected $fillable = [
@@ -50,16 +51,16 @@ class NotificationItassel extends Model
     public function versApi(?string $emailDemandeur = null, iterable $emailsSuperAdmin = []): array
     {
         return [
-            'id_notification'    => $this->id_notification,
-            'type_notification'  => $this->type_notification,
-            'destinataire'       => $this->destinataire,
-            'destinataire_type'  => static::typeDestinataire(
+            'id_notification' => $this->id_notification,
+            'type_notification' => $this->type_notification,
+            'destinataire' => $this->destinataire,
+            'destinataire_type' => static::typeDestinataire(
                 (string) $this->destinataire,
                 $emailDemandeur ?? $this->doleance?->email,
                 $emailsSuperAdmin,
             ),
-            'etat_envoi'         => $this->etat_envoi,
-            'date_envoi'         => $this->date_envoi,
+            'etat_envoi' => $this->etat_envoi,
+            'date_envoi' => $this->date_envoi,
         ];
     }
 }

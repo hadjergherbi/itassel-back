@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(EnTetesSecurite::class);
         $middleware->alias([
             'compte.actif' => EnsureCompteActif::class,
-            'permission'   => EnsurePermission::class,
+            'permission' => EnsurePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -37,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (ConflitMetier $e) {
             return response()->json([
                 'message' => $e->getMessage(),
-                'code'    => $e->codeErreur,
+                'code' => $e->codeErreur,
             ], 409);
         });
 

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class JetonMotDePasse extends Model
 {
     protected $table = 'jetons_mot_de_passe';
+
     protected $primaryKey = 'id_jeton';
 
     protected $fillable = [
@@ -14,7 +15,7 @@ class JetonMotDePasse extends Model
     ];
 
     protected $casts = [
-        'expire_le'  => 'datetime',
+        'expire_le' => 'datetime',
         'utilise_le' => 'datetime',
     ];
 

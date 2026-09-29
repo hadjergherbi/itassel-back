@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Mail\ReinitialisationMotDePasseMail;
-use App\Models\Journal;
 use App\Models\JetonMotDePasse;
+use App\Models\Journal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class MotDePasseOublieTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     private const MESSAGE_NEUTRE = 'Si un compte correspond à cette adresse, un lien de réinitialisation a été envoyé.';
 
@@ -182,7 +182,7 @@ class MotDePasseOublieTest extends TestCase
             ->assertOk()
             ->assertJson([
                 'valide' => true,
-                'type'   => 'reinitialisation',
+                'type' => 'reinitialisation',
             ]);
 
         $this->postJson('/api/admin/mot-de-passe/definir', [

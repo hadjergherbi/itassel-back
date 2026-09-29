@@ -49,26 +49,26 @@ class ComplementService
             $statutAvant = $doleance->id_statut;
 
             $complement = Complement::create([
-                'question'          => $question,
-                'piece_exigee'      => $descriptionPiece !== null,
+                'question' => $question,
+                'piece_exigee' => $descriptionPiece !== null,
                 'description_piece' => $descriptionPiece,
-                'etat'              => 'en_attente',
-                'date_demande'      => now(),
-                'id_doleance'       => $doleance->id_doleance,
-                'id_auteur'         => $auteur->id_utilisateur,
+                'etat' => 'en_attente',
+                'date_demande' => now(),
+                'id_doleance' => $doleance->id_doleance,
+                'id_auteur' => $auteur->id_utilisateur,
             ]);
 
             $doleance->update(['id_statut' => $statutInfo->id_statut]);
 
             $evenement = Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'complement_demande',
-                'detail'            => $question,
+                'date_evenement' => now(),
+                'type_evenement' => 'complement_demande',
+                'detail' => $question,
                 'visible_demandeur' => true,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $auteur->id_utilisateur,
-                'id_statut_avant'   => $statutAvant,
-                'id_statut_apres'   => $statutInfo->id_statut,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $auteur->id_utilisateur,
+                'id_statut_avant' => $statutAvant,
+                'id_statut_apres' => $statutInfo->id_statut,
             ]);
 
             return [$complement, $evenement];
@@ -79,8 +79,8 @@ class ComplementService
             $doleance->fresh(),
             [
                 'complement' => $complement,
-                'titre'      => "Complément demandé — {$doleance->reference}",
-                'texte'      => "Une information a été demandée au demandeur pour le dossier {$doleance->reference}.",
+                'titre' => "Complément demandé — {$doleance->reference}",
+                'texte' => "Une information a été demandée au demandeur pour le dossier {$doleance->reference}.",
             ],
             $auteur,
             $evenement->id_evenement,
@@ -120,10 +120,10 @@ class ComplementService
             $statutAvant = $doleance->id_statut;
 
             $complement->update([
-                'etat'             => 'annule',
+                'etat' => 'annule',
                 'motif_annulation' => $motif,
-                'id_annule_par'    => $acteur->id_utilisateur,
-                'date_annulation'  => now(),
+                'id_annule_par' => $acteur->id_utilisateur,
+                'date_annulation' => now(),
             ]);
 
             $passeEnCours = $doleance->statut?->code === Statut::INFORMATION_DEMANDEE;
@@ -132,23 +132,23 @@ class ComplementService
             }
 
             $evenementVisible = Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'complement_annule',
-                'detail'            => null,
+                'date_evenement' => now(),
+                'type_evenement' => 'complement_annule',
+                'detail' => null,
                 'visible_demandeur' => true,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $acteur->id_utilisateur,
-                'id_statut_avant'   => $statutAvant,
-                'id_statut_apres'   => $passeEnCours ? $statutEnCours->id_statut : $statutAvant,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $acteur->id_utilisateur,
+                'id_statut_avant' => $statutAvant,
+                'id_statut_apres' => $passeEnCours ? $statutEnCours->id_statut : $statutAvant,
             ]);
 
             Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'complement_annule_motif',
-                'detail'            => $motif,
+                'date_evenement' => now(),
+                'type_evenement' => 'complement_annule_motif',
+                'detail' => $motif,
                 'visible_demandeur' => false,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $acteur->id_utilisateur,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $acteur->id_utilisateur,
             ]);
 
             return [$complement->fresh(), $doleance->fresh(), $evenementVisible->id_evenement];

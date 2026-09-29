@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
@@ -23,7 +24,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $data = $request->validate([
-            'email'        => ['required', 'email'],
+            'email' => ['required', 'email'],
             'mot_de_passe' => ['required', 'string'],
         ]);
 
@@ -90,9 +91,9 @@ class AuthController extends Controller
         $jeton = $utilisateur->createToken('backoffice', ['*'], $expireLe)->plainTextToken;
 
         return response()->json([
-            'token'       => $jeton,
+            'token' => $jeton,
             'utilisateur' => $this->profil($utilisateur),
-            'expire_le'   => $expireLe->toIso8601String(),
+            'expire_le' => $expireLe->toIso8601String(),
         ]);
     }
 
@@ -117,26 +118,26 @@ class AuthController extends Controller
         $utilisateur = $request->user()->load('service');
 
         return response()->json(array_merge($this->profil($utilisateur), [
-            'compteur_nouvelles'      => Acces::doleancesVisibles($utilisateur)
+            'compteur_nouvelles' => Acces::doleancesVisibles($utilisateur)
                 ->whereHas('statut', fn ($q) => $q->where('code', Statut::NOUVELLE))
                 ->count(),
-            'permissions'             => $utilisateur->permissions(),
-            'libelle_role'            => $utilisateur->libelleRole(),
-            'derniere_connexion'      => $utilisateur->derniere_connexion,
-            'connexion_precedente'    => $utilisateur->connexion_precedente,
-            'notifications_non_lues'  => $utilisateur->notificationsApp()->whereNull('lue_le')->count(),
+            'permissions' => $utilisateur->permissions(),
+            'libelle_role' => $utilisateur->libelleRole(),
+            'derniere_connexion' => $utilisateur->derniere_connexion,
+            'connexion_precedente' => $utilisateur->connexion_precedente,
+            'notifications_non_lues' => $utilisateur->notificationsApp()->whereNull('lue_le')->count(),
         ]));
     }
 
     public function changerMotDePasse(Request $request)
     {
         $data = $request->validate([
-            'mot_de_passe_actuel'         => ['required', 'string'],
-            'mot_de_passe'                => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::min(10)->letters()->mixedCase()->numbers()],
-            'mot_de_passe_confirmation'   => ['required', 'string'],
+            'mot_de_passe_actuel' => ['required', 'string'],
+            'mot_de_passe' => ['required', 'confirmed', Password::min(10)->letters()->mixedCase()->numbers()],
+            'mot_de_passe_confirmation' => ['required', 'string'],
         ]);
 
-        \App\Services\CompteService::changerMotDePasse(
+        CompteService::changerMotDePasse(
             $request->user(),
             $data['mot_de_passe_actuel'],
             $data['mot_de_passe'],
@@ -157,7 +158,7 @@ class AuthController extends Controller
         $minutes = max(1, (int) ceil($secondes / 60));
 
         return response()->json([
-            'message'        => "Trop de tentatives. Réessayez dans {$minutes} minutes.",
+            'message' => "Trop de tentatives. Réessayez dans {$minutes} minutes.",
             'reessayer_dans' => $secondes,
         ], 429);
     }
@@ -189,17 +190,17 @@ class AuthController extends Controller
     private function profil(Utilisateur $utilisateur): array
     {
         return [
-            'id'             => $utilisateur->id_utilisateur,
+            'id' => $utilisateur->id_utilisateur,
             'id_utilisateur' => $utilisateur->id_utilisateur,
-            'nom'            => $utilisateur->nom,
-            'prenom'         => $utilisateur->prenom,
-            'email'          => $utilisateur->email,
-            'role'           => $utilisateur->role,
-            'service'        => $utilisateur->service
+            'nom' => $utilisateur->nom,
+            'prenom' => $utilisateur->prenom,
+            'email' => $utilisateur->email,
+            'role' => $utilisateur->role,
+            'service' => $utilisateur->service
                 ? [
-                    'id'          => $utilisateur->service->id_service,
-                    'id_service'  => $utilisateur->service->id_service,
-                    'nom'         => $utilisateur->service->nom_service,
+                    'id' => $utilisateur->service->id_service,
+                    'id_service' => $utilisateur->service->id_service,
+                    'nom' => $utilisateur->service->nom_service,
                     'nom_service' => $utilisateur->service->nom_service,
                 ]
                 : null,

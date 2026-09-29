@@ -6,13 +6,14 @@ use App\Models\Nature;
 use App\Models\Reaffectation;
 use App\Models\Service;
 use App\Models\Statut;
+use App\Models\Utilisateur;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\ItasselHelpers;
 use Tests\TestCase;
 
 class ListesTableauxTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -27,7 +28,7 @@ class ListesTableauxTest extends TestCase
         $service->update(['id_responsable' => null]);
         $autreService = Service::where('id_service', '!=', $service->id_service)->first();
         $this->adminService($autreService);
-        $autreService->update(['id_responsable' => \App\Models\Utilisateur::where('id_service', $autreService->id_service)->value('id_utilisateur')]);
+        $autreService->update(['id_responsable' => Utilisateur::where('id_service', $autreService->id_service)->value('id_utilisateur')]);
         $this->doleance(['id_service' => $service->id_service, 'statut' => Statut::NOUVELLE]);
         $autre = $this->doleance(['id_service' => $autreService->id_service, 'statut' => Statut::EN_COURS]);
         Reaffectation::factory()->create([
@@ -71,18 +72,18 @@ class ListesTableauxTest extends TestCase
 
         $mienne = $this->doleance([
             'id_service' => $sport->id_service,
-            'id_nature'  => $reclamation->id_nature,
-            'reference'  => 'ITS-2026-5101',
+            'id_nature' => $reclamation->id_nature,
+            'reference' => 'ITS-2026-5101',
         ]);
         $transversale = $this->doleance([
             'id_service' => $jeunesse->id_service,
-            'id_nature'  => $toutes->id_nature,
-            'reference'  => 'ITS-2026-5102',
+            'id_nature' => $toutes->id_nature,
+            'reference' => 'ITS-2026-5102',
         ]);
         $autre = $this->doleance([
             'id_service' => $jeunesse->id_service,
-            'id_nature'  => $reclamation->id_nature,
-            'reference'  => 'ITS-2026-5103',
+            'id_nature' => $reclamation->id_nature,
+            'reference' => 'ITS-2026-5103',
         ]);
 
         $this->connecter($admin);
@@ -108,18 +109,18 @@ class ListesTableauxTest extends TestCase
 
         $mienne = $this->doleance([
             'id_service' => $sport->id_service,
-            'id_nature'  => $reclamation->id_nature,
-            'reference'  => 'ITS-2026-5201',
+            'id_nature' => $reclamation->id_nature,
+            'reference' => 'ITS-2026-5201',
         ]);
         $tousDomaines = $this->doleance([
             'id_service' => $transverse->id_service,
-            'id_nature'  => $reclamation->id_nature,
-            'reference'  => 'ITS-2026-5202',
+            'id_nature' => $reclamation->id_nature,
+            'reference' => 'ITS-2026-5202',
         ]);
         $autre = $this->doleance([
             'id_service' => $jeunesse->id_service,
-            'id_nature'  => $reclamation->id_nature,
-            'reference'  => 'ITS-2026-5203',
+            'id_nature' => $reclamation->id_nature,
+            'reference' => 'ITS-2026-5203',
         ]);
 
         $this->connecter($admin);

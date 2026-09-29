@@ -16,13 +16,12 @@ class CodeVerificationMail extends Mailable
         public string $code,
         public string $reference,
         public int $dureeMinutes,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "ITASSEL — Votre code de vérification",
+            subject: 'ITASSEL — Votre code de vérification',
         );
     }
 

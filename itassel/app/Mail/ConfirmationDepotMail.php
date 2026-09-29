@@ -13,9 +13,7 @@ class ConfirmationDepotMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Doleance $doleance)
-    {
-    }
+    public function __construct(public Doleance $doleance) {}
 
     public function envelope(): Envelope
     {

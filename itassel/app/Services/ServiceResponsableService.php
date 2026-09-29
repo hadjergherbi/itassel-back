@@ -49,12 +49,12 @@ class ServiceResponsableService
                 $doleance->update(['id_responsable' => $responsable->id_utilisateur]);
 
                 Historique::create([
-                    'date_evenement'    => now(),
-                    'type_evenement'    => 'changement_responsable',
-                    'detail'            => "Responsable désigné : {$responsable->nomComplet()}",
+                    'date_evenement' => now(),
+                    'type_evenement' => 'changement_responsable',
+                    'detail' => "Responsable désigné : {$responsable->nomComplet()}",
                     'visible_demandeur' => false,
-                    'id_doleance'       => $doleance->id_doleance,
-                    'id_utilisateur'    => $acteur->id_utilisateur,
+                    'id_doleance' => $doleance->id_doleance,
+                    'id_utilisateur' => $acteur->id_utilisateur,
                 ]);
             }
         });
@@ -71,8 +71,8 @@ class ServiceResponsableService
                     $doleance,
                     [
                         'utilisateur_designe' => $responsable,
-                        'titre'               => "Dossier attribué — {$doleance->reference}",
-                        'texte'               => "Vous êtes désormais responsable du dossier {$doleance->reference}.",
+                        'titre' => "Dossier attribué — {$doleance->reference}",
+                        'texte' => "Vous êtes désormais responsable du dossier {$doleance->reference}.",
                     ],
                     $acteur,
                 );

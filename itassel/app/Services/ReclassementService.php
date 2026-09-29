@@ -68,14 +68,14 @@ class ReclassementService
             $doleance->update(['id_statut' => $cible->id_statut]);
 
             Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'reclassement',
-                'detail'            => $motif,
+                'date_evenement' => now(),
+                'type_evenement' => 'reclassement',
+                'detail' => $motif,
                 'visible_demandeur' => false,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $acteur->id_utilisateur,
-                'id_statut_avant'   => $avant,
-                'id_statut_apres'   => $cible->id_statut,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $acteur->id_utilisateur,
+                'id_statut_avant' => $avant,
+                'id_statut_apres' => $cible->id_statut,
             ]);
 
             return $doleance->fresh(['statut', 'nature']);

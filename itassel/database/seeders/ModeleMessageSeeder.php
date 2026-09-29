@@ -15,15 +15,15 @@ class ModeleMessageSeeder extends Seeder
     {
         $modeles = [
             ['Accusé de réception', 'reponse',
-             "Nous avons bien reçu votre doléance. Elle est en cours d'étude par nos services, et vous serez informé(e) de la suite qui lui sera donnée."],
+                "Nous avons bien reçu votre doléance. Elle est en cours d'étude par nos services, et vous serez informé(e) de la suite qui lui sera donnée."],
             ['Demande traitée', 'reponse',
-             "Votre demande a été traitée. Nous vous remercions pour votre signalement, qui contribue à l'amélioration de nos services."],
+                "Votre demande a été traitée. Nous vous remercions pour votre signalement, qui contribue à l'amélioration de nos services."],
             ['Hors compétence', 'reponse',
-             "Après étude, votre demande ne relève pas de la compétence du Ministère. Nous vous invitons à vous rapprocher de l'organisme concerné."],
+                "Après étude, votre demande ne relève pas de la compétence du Ministère. Nous vous invitons à vous rapprocher de l'organisme concerné."],
             ['Précision sur le lieu', 'complement',
-             "Pouvez-vous préciser l'adresse exacte du lieu concerné ?"],
+                "Pouvez-vous préciser l'adresse exacte du lieu concerné ?"],
             ['Justificatif', 'complement',
-             "Merci de nous transmettre un justificatif permettant d'étudier votre demande."],
+                "Merci de nous transmettre un justificatif permettant d'étudier votre demande."],
         ];
 
         foreach ($modeles as [$titre, $usage, $contenu]) {

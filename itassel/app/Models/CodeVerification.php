@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Hash;
 
 class CodeVerification extends Model
 {
     use HasFactory;
 
     protected $table = 'codes_verification';
+
     protected $primaryKey = 'id_code';
 
     protected $fillable = [

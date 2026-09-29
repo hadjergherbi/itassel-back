@@ -10,14 +10,23 @@ class Statut extends Model
     use HasFactory;
 
     public const NOUVELLE = 'nouvelle';
+
     public const EN_COURS = 'en_cours';
+
     public const INFORMATION_DEMANDEE = 'information_demandee';
+
     public const RESOLUE = 'resolue';
+
     public const CLOTUREE = 'cloturee';
+
     public const NON_FONDEE = 'non_fondee';
+
     public const DOUBLE = 'double';
+
     public const REPONSE_APPORTEE = 'reponse_apportee';
+
     public const HORS_COMPETENCE = 'hors_competence';
+
     public const NON_RETENUE = 'non_retenue';
 
     protected $primaryKey = 'id_statut';

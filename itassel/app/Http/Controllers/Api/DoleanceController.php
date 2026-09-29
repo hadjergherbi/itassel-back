@@ -40,7 +40,7 @@ class DoleanceController extends Controller
         $raisonSpam = $this->controlerAntiSpam($request);
         if ($raisonSpam !== null) {
             Log::warning('Dépôt public rejeté', [
-                'ip'     => $request->ip(),
+                'ip' => $request->ip(),
                 'raison' => $raisonSpam,
             ]);
 
@@ -57,26 +57,26 @@ class DoleanceController extends Controller
         $nomPersonne = "/^[\\p{L} '\\-]+$/u";
 
         $data = $request->validate([
-            'nom'          => ['required', 'string', 'max:60', 'regex:'.$nomPersonne],
-            'prenom'       => ['required', 'string', 'max:60', 'regex:'.$nomPersonne],
-            'email'        => ['required', 'email', 'max:120'],
-            'telephone'    => ['required', 'string', 'max:20', 'regex:/^(\\+213|0)([5-7]\\d{8}|[2-4]\\d{7,8})$/'],
-            'wilaya'       => ['required', 'string', 'max:40'],
-            'objet'        => ['required', 'string', 'max:200'],
-            'description'  => ['required', 'string', 'max:5000'],
-            'id_service'   => [
+            'nom' => ['required', 'string', 'max:60', 'regex:'.$nomPersonne],
+            'prenom' => ['required', 'string', 'max:60', 'regex:'.$nomPersonne],
+            'email' => ['required', 'email', 'max:120'],
+            'telephone' => ['required', 'string', 'max:20', 'regex:/^(\\+213|0)([5-7]\\d{8}|[2-4]\\d{7,8})$/'],
+            'wilaya' => ['required', 'string', 'max:40'],
+            'objet' => ['required', 'string', 'max:200'],
+            'description' => ['required', 'string', 'max:5000'],
+            'id_service' => [
                 'required',
                 Rule::exists('services', 'id_service')->where(
                     fn ($q) => $q->whereRaw('LOWER(TRIM(nom_service)) != ?', [mb_strtolower(Service::TOUS_LES_DOMAINES)])
                 ),
             ],
-            'id_nature'    => [
+            'id_nature' => [
                 'required',
                 Rule::exists('natures', 'id_nature')->where(
                     fn ($q) => $q->whereRaw('LOWER(TRIM(libelle)) != ?', [mb_strtolower(Nature::TOUTES_NATURES)])
                 ),
             ],
-            'id_qualite'   => [
+            'id_qualite' => [
                 'required',
                 Rule::exists('qualites', 'id_qualite')->where('selectionnable', true),
             ],
@@ -87,37 +87,37 @@ class DoleanceController extends Controller
             $statutNouvelle = Statut::parCode(Statut::NOUVELLE);
 
             $doleance = Doleance::create([
-                'reference'   => $this->genererReference(),
-                'nom'         => $data['nom'],
-                'prenom'      => $data['prenom'],
-                'email'       => $data['email'],
-                'telephone'   => $data['telephone'],
-                'wilaya'      => $data['wilaya'],
-                'objet'       => $data['objet'],
+                'reference' => $this->genererReference(),
+                'nom' => $data['nom'],
+                'prenom' => $data['prenom'],
+                'email' => $data['email'],
+                'telephone' => $data['telephone'],
+                'wilaya' => $data['wilaya'],
+                'objet' => $data['objet'],
                 'description' => $data['description'],
-                'date_depot'  => now(),
-                'id_service'  => $data['id_service'],
-                'id_statut'   => $statutNouvelle->id_statut,
-                'id_nature'   => $data['id_nature'],
-                'id_qualite'  => $data['id_qualite'],
+                'date_depot' => now(),
+                'id_service' => $data['id_service'],
+                'id_statut' => $statutNouvelle->id_statut,
+                'id_nature' => $data['id_nature'],
+                'id_qualite' => $data['id_qualite'],
             ]);
 
             $evenement = Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'depot',
+                'date_evenement' => now(),
+                'type_evenement' => 'depot',
                 'visible_demandeur' => true,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_statut_apres'   => $statutNouvelle->id_statut,
+                'id_doleance' => $doleance->id_doleance,
+                'id_statut_apres' => $statutNouvelle->id_statut,
             ]);
 
             $nomService = Service::whereKey($doleance->id_service)->value('nom_service') ?? '—';
             Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'affectation',
-                'detail'            => "Affectée au service {$nomService}",
+                'date_evenement' => now(),
+                'type_evenement' => 'affectation',
+                'detail' => "Affectée au service {$nomService}",
                 'visible_demandeur' => false,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => null,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => null,
             ]);
 
             return [$doleance, $evenement];
@@ -136,7 +136,7 @@ class DoleanceController extends Controller
 
         return response()->json([
             'reference' => $doleance->reference,
-            'message'   => 'Votre doléance a bien été enregistrée.',
+            'message' => 'Votre doléance a bien été enregistrée.',
         ], 201);
     }
 

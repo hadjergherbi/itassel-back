@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class NotificationsTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {

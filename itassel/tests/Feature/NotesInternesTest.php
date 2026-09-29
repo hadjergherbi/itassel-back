@@ -16,7 +16,7 @@ use Tests\TestCase;
 
 class NotesInternesTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -89,7 +89,7 @@ class NotesInternesTest extends TestCase
 
         $this->connecter($auteur)
             ->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
-                'contenu'  => 'À voir avec @Amine pour le dossier.',
+                'contenu' => 'À voir avec @Amine pour le dossier.',
                 'mentions' => [$mentionne->id_utilisateur],
                 'etiquette' => 'a_verifier',
             ])
@@ -103,7 +103,7 @@ class NotesInternesTest extends TestCase
         $this->assertSame(1, Journal::where('action', 'mention_note')->count());
 
         $this->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
-            'contenu'  => 'Mention interdite.',
+            'contenu' => 'Mention interdite.',
             'mentions' => [$invalide->id_utilisateur],
         ])->assertStatus(422)->assertJsonFragment([
             'Cette personne ne peut pas être mentionnée sur ce dossier.',
@@ -119,8 +119,8 @@ class NotesInternesTest extends TestCase
 
         $this->connecter($auteur)
             ->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
-                'contenu'        => 'Merci de relire cette note interne.',
-                'mentions'       => [$mentionne->id_utilisateur],
+                'contenu' => 'Merci de relire cette note interne.',
+                'mentions' => [$mentionne->id_utilisateur],
                 'notifier_email' => true,
             ])
             ->assertCreated();
@@ -136,7 +136,7 @@ class NotesInternesTest extends TestCase
         }
 
         $this->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
-            'contenu'  => 'Trop de mentions.',
+            'contenu' => 'Trop de mentions.',
             'mentions' => $ids,
         ])->assertStatus(422);
     }
@@ -186,14 +186,14 @@ class NotesInternesTest extends TestCase
 
         $this->connecter($auteur);
         $id = $this->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
-            'contenu'  => 'Pour le premier.',
+            'contenu' => 'Pour le premier.',
             'mentions' => [$premier->id_utilisateur],
         ])->assertCreated()->json('note.id_note');
 
         $this->assertSame(1, NotificationApp::where('id_utilisateur', $premier->id_utilisateur)->count());
 
         $this->putJson("/api/admin/doleances/{$doleance->reference}/notes/{$id}", [
-            'contenu'  => 'Pour les deux.',
+            'contenu' => 'Pour les deux.',
             'mentions' => [$premier->id_utilisateur, $second->id_utilisateur],
         ])->assertOk();
 

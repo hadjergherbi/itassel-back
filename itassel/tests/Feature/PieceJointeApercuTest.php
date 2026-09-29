@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class PieceJointeApercuTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -143,10 +143,10 @@ class PieceJointeApercuTest extends TestCase
 
         return PieceJointe::create(array_merge([
             'nom_fichier' => 'justificatif.'.$type,
-            'type'        => $type,
-            'taille'      => 20,
-            'chemin'      => $chemin,
-            'origine'     => 'DEPOT_INITIAL',
+            'type' => $type,
+            'taille' => 20,
+            'chemin' => $chemin,
+            'origine' => 'DEPOT_INITIAL',
             'id_doleance' => $doleance->id_doleance,
         ], $attrs));
     }

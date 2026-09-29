@@ -15,20 +15,20 @@ class ComplementFactory extends Factory
     public function definition(): array
     {
         return [
-            'question'      => fake()->sentence(),
-            'piece_exigee'  => false,
-            'etat'          => 'en_attente',
-            'date_demande'  => now(),
-            'id_doleance'   => Doleance::factory(),
-            'id_auteur'     => Utilisateur::factory(),
+            'question' => fake()->sentence(),
+            'piece_exigee' => false,
+            'etat' => 'en_attente',
+            'date_demande' => now(),
+            'id_doleance' => Doleance::factory(),
+            'id_auteur' => Utilisateur::factory(),
         ];
     }
 
     public function recu(): static
     {
         return $this->state(fn () => [
-            'etat'         => 'recu',
-            'reponse'      => fake()->sentence(),
+            'etat' => 'recu',
+            'reponse' => fake()->sentence(),
             'date_reponse' => now(),
         ]);
     }

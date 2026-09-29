@@ -16,12 +16,12 @@ class RoleAdminController extends Controller
         $roles = Role::with('permissions')->withCount('utilisateurs')->orderBy('id_role')->get();
 
         return response()->json($roles->map(fn (Role $role) => [
-            'id_role'      => $role->id_role,
-            'code'         => $role->code,
-            'libelle'      => $role->libelle,
-            'description'  => $role->description,
+            'id_role' => $role->id_role,
+            'code' => $role->code,
+            'libelle' => $role->libelle,
+            'description' => $role->description,
             'utilisateurs' => $role->utilisateurs_count,
-            'permissions'  => $role->permissions->pluck('code')->values(),
+            'permissions' => $role->permissions->pluck('code')->values(),
         ]));
     }
 
@@ -33,12 +33,12 @@ class RoleAdminController extends Controller
 
         $groupes = $enBase->map(function ($permissions, $groupe) use ($verrouillees, $catalogue) {
             return [
-                'groupe'      => $groupe,
+                'groupe' => $groupe,
                 'permissions' => $permissions->map(fn (Permission $p) => [
-                    'code'        => $p->code,
-                    'libelle'     => $p->libelle,
+                    'code' => $p->code,
+                    'libelle' => $p->libelle,
                     'verrouillee' => in_array($p->code, $verrouillees, true),
-                    'defaults'    => $catalogue[$p->code]['defaults'] ?? [],
+                    'defaults' => $catalogue[$p->code]['defaults'] ?? [],
                 ])->values(),
             ];
         })->values();
@@ -54,7 +54,7 @@ class RoleAdminController extends Controller
         }
 
         $data = $request->validate([
-            'permissions'   => ['required', 'array'],
+            'permissions' => ['required', 'array'],
             'permissions.*' => ['string'],
         ]);
 
@@ -65,7 +65,7 @@ class RoleAdminController extends Controller
         }
 
         return response()->json([
-            'message'     => 'Permissions mises à jour.',
+            'message' => 'Permissions mises à jour.',
             'permissions' => $role->permissions->pluck('code')->values(),
         ]);
     }

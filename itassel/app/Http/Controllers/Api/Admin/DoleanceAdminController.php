@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Doleance;
 use App\Models\Nature;
 use App\Models\Reaffectation;
 use App\Models\Service;
@@ -57,13 +56,13 @@ class DoleanceAdminController extends Controller
             ->count();
 
         $resume = [
-            'total'                     => (clone $query)->count(),
-            'sans_responsable'          => DoleanceFiltre::appliquerSansResponsable(clone $query)->count(),
+            'total' => (clone $query)->count(),
+            'sans_responsable' => DoleanceFiltre::appliquerSansResponsable(clone $query)->count(),
             'reaffectations_en_attente' => (clone $query)
                 ->whereHas('reaffectations', fn ($q) => $q->where('etat', 'en_attente'))
                 ->count(),
-            'a_examiner'                => $aExaminer,
-            'a_reclasser'               => DoleanceFiltre::appliquerAReclasser(clone $query)->count(),
+            'a_examiner' => $aExaminer,
+            'a_reclasser' => DoleanceFiltre::appliquerAReclasser(clone $query)->count(),
         ];
 
         DoleanceFiltre::appliquerStatut($query, $filtres);
@@ -109,10 +108,10 @@ class DoleanceAdminController extends Controller
         });
 
         $reponse = [
-            'doleances'  => $page,
-            'compteurs'  => $compteurs,
+            'doleances' => $page,
+            'compteurs' => $compteurs,
             'a_examiner' => $aExaminer,
-            'resume'     => $resume,
+            'resume' => $resume,
         ];
 
         if ($utilisateur->estSuperAdmin()) {
@@ -206,27 +205,27 @@ class DoleanceAdminController extends Controller
         })->values();
 
         return response()->json(array_merge($donnees, [
-            'organisme_competent'      => $doleance->organisme_competent,
-            'a_reclasser'              => ReclassementService::estAReclasser($doleance),
-            'reclassements_possibles'  => ReclassementService::ciblesPossibles($doleance)->map->versApi()->values(),
-            'transitions_autorisees'   => $doleance->transitionsAutorisees()->map->versApi()->values(),
-            'complement_a_examiner'    => $doleance->complementAExaminer(),
-            'reaffectations'           => $reaffectations,
+            'organisme_competent' => $doleance->organisme_competent,
+            'a_reclasser' => ReclassementService::estAReclasser($doleance),
+            'reclassements_possibles' => ReclassementService::ciblesPossibles($doleance)->map->versApi()->values(),
+            'transitions_autorisees' => $doleance->transitionsAutorisees()->map->versApi()->values(),
+            'complement_a_examiner' => $doleance->complementAExaminer(),
+            'reaffectations' => $reaffectations,
             'reaffectation_en_attente' => $doleance->reaffectations
                 ->firstWhere('etat', 'en_attente')
                 ?->versApi(),
-            'historique'               => $doleance->historique->map(fn ($evenement) => [
-                'id_evenement'      => $evenement->id_evenement,
-                'date_evenement'    => $evenement->date_evenement,
-                'type_evenement'    => $evenement->type_evenement,
-                'detail'            => $evenement->detail,
+            'historique' => $doleance->historique->map(fn ($evenement) => [
+                'id_evenement' => $evenement->id_evenement,
+                'date_evenement' => $evenement->date_evenement,
+                'type_evenement' => $evenement->type_evenement,
+                'detail' => $evenement->detail,
                 'visible_demandeur' => $evenement->visible_demandeur,
-                'utilisateur'       => $evenement->utilisateur
+                'utilisateur' => $evenement->utilisateur
                     ? $evenement->utilisateur->only(['id_utilisateur', 'nom', 'prenom'])
                     : null,
-                'statut_avant'      => $evenement->statutAvant?->versApi(),
-                'statut_apres'      => $evenement->statutApres?->versApi(),
-                'notifications'     => $evenement->notifications
+                'statut_avant' => $evenement->statutAvant?->versApi(),
+                'statut_apres' => $evenement->statutApres?->versApi(),
+                'notifications' => $evenement->notifications
                     ->map(fn ($n) => $n->versApi($doleance->email, $emailsSuperAdmin))
                     ->values(),
             ])->values(),
@@ -256,17 +255,17 @@ class DoleanceAdminController extends Controller
         $parNature = Nature::orderBy('libelle')->get(['id_nature', 'libelle'])
             ->map(fn (Nature $nature) => [
                 'id_nature' => $nature->id_nature,
-                'libelle'   => $nature->libelle,
-                'total'     => (int) ($totaux[$nature->id_nature] ?? 0),
+                'libelle' => $nature->libelle,
+                'total' => (int) ($totaux[$nature->id_nature] ?? 0),
             ])->values();
 
         $total = $this->requeteFiltree($utilisateur, $filtres)->count();
 
         return response()->json([
-            'total'      => $total,
+            'total' => $total,
             'par_nature' => $parNature,
             'date_debut' => $dateDebut,
-            'date_fin'   => $dateFin,
+            'date_fin' => $dateFin,
         ]);
     }
 
@@ -328,23 +327,23 @@ class DoleanceAdminController extends Controller
             $parService = $utilisateur->estSuperAdmin() && empty($filtres['service']);
             $chiffres = $this->chiffresDoleances($doleances, $base, $doleances->count() > 2000);
             $pdf = Pdf::loadView('exports.doleances', [
-                'doleances'   => $doleances,
-                'service'     => $libelleService,
-                'date_debut'  => $dateDebut,
-                'date_fin'    => $dateFin,
-                'natures'     => $natures,
-                'genere_le'   => now()->format('d/m/Y H:i'),
-                'agent'       => $utilisateur->nomComplet(),
-                'synthese'    => $synthese,
-                'total'       => $chiffres['total'],
-                'resolues'    => $chiffres['resolues'],
-                'en_cours'    => $chiffres['en_cours'],
+                'doleances' => $doleances,
+                'service' => $libelleService,
+                'date_debut' => $dateDebut,
+                'date_fin' => $dateFin,
+                'natures' => $natures,
+                'genere_le' => now()->format('d/m/Y H:i'),
+                'agent' => $utilisateur->nomComplet(),
+                'synthese' => $synthese,
+                'total' => $chiffres['total'],
+                'resolues' => $chiffres['resolues'],
+                'en_cours' => $chiffres['en_cours'],
                 'taux_resolution' => $chiffres['taux'],
-                'graphiques'  => $synthese
+                'graphiques' => $synthese
                     ? $this->graphiquesDoleances($doleances, $base, $parService, $doleances->count() > 2000)
                     : [],
                 'titre_document' => 'Export des doléances',
-                'reference'      => 'DOL-'.$dateFin,
+                'reference' => 'DOL-'.$dateFin,
             ])->setPaper('a4', 'landscape');
 
             ExportPdf::preparer($pdf);
@@ -381,7 +380,7 @@ class DoleanceAdminController extends Controller
         JournalService::action($request, $utilisateur, 'export_csv', $detail);
 
         return response($contenu, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.$nomFichier.'"',
         ]);
     }
@@ -407,10 +406,10 @@ class DoleanceAdminController extends Controller
         }
 
         return [
-            'total'    => $total,
+            'total' => $total,
             'resolues' => $resolues,
             'en_cours' => $enCours,
-            'taux'     => $total > 0 ? round($resolues / $total * 100, 1) : 0.0,
+            'taux' => $total > 0 ? round($resolues / $total * 100, 1) : 0.0,
         ];
     }
 
@@ -427,7 +426,7 @@ class DoleanceAdminController extends Controller
                 ->get()
                 ->map(fn ($ligne) => [
                     'libelle' => $ligne->libelle,
-                    'valeur'  => (int) $ligne->total,
+                    'valeur' => (int) $ligne->total,
                 ])->all();
 
             $natures = (clone $base)
@@ -460,7 +459,7 @@ class DoleanceAdminController extends Controller
                 ->groupBy(fn ($d) => $d->statut?->code ?? '')
                 ->map(fn ($groupe) => [
                     'libelle' => $groupe->first()->statut?->libelle ?? 'Sans statut',
-                    'valeur'  => $groupe->count(),
+                    'valeur' => $groupe->count(),
                 ])->values()->all();
 
             $natures = $doleances
@@ -508,8 +507,8 @@ class DoleanceAdminController extends Controller
         unset($part);
 
         return [
-            'titre'   => $titre,
-            'image'   => null,
+            'titre' => $titre,
+            'image' => null,
             'legende' => GraphiqueCirculaire::legende($serie),
         ];
     }

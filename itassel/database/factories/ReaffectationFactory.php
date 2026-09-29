@@ -16,11 +16,11 @@ class ReaffectationFactory extends Factory
     public function definition(): array
     {
         return [
-            'etat'               => 'en_attente',
-            'motif'              => fake()->sentence(),
-            'date_demande'       => now(),
-            'id_doleance'        => Doleance::factory(),
-            'id_demandeur'       => Utilisateur::factory(),
+            'etat' => 'en_attente',
+            'motif' => fake()->sentence(),
+            'date_demande' => now(),
+            'id_doleance' => Doleance::factory(),
+            'id_demandeur' => Utilisateur::factory(),
             'id_service_propose' => Service::factory(),
         ];
     }

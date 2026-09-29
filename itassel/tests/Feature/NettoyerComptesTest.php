@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class NettoyerComptesTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -45,7 +45,7 @@ class NettoyerComptesTest extends TestCase
         config(['itassel.demo_password' => null]);
 
         $this->expectException(RuntimeException::class);
-        (new AdminSeeder())->run();
+        (new AdminSeeder)->run();
     }
 
     public function test_dry_run_necrit_rien(): void
@@ -73,8 +73,8 @@ class NettoyerComptesTest extends TestCase
         $lie = $this->adminService($jeunesse, ['email' => 'farid.merabet@itassel.dz']);
         $jeunesse->update(['id_responsable' => $lie->id_utilisateur]);
         $doleance = $this->doleance([
-            'id_service'      => $jeunesse->id_service,
-            'id_responsable'  => $lie->id_utilisateur,
+            'id_service' => $jeunesse->id_service,
+            'id_responsable' => $lie->id_utilisateur,
         ]);
         $lie->createToken('session');
 
@@ -136,8 +136,8 @@ class NettoyerComptesTest extends TestCase
         );
 
         $this->artisan('itassel:nettoyer-comptes', [
-            '--super'  => 'absent@itassel.dz',
-            '--force'  => true,
+            '--super' => 'absent@itassel.dz',
+            '--force' => true,
         ])->assertFailed()->expectsOutputToContain('introuvable');
         $this->assertTrue($intrus->fresh()->actif);
 

@@ -51,7 +51,7 @@ class ParametreAdminController extends Controller
             if ($bloque) {
                 return response()->json([
                     'message' => 'Des dossiers de cette nature sont classés dans une issue liée à la famille actuelle.',
-                    'code'    => 'parametre_utilise',
+                    'code' => 'parametre_utilise',
                 ], 409);
             }
         }
@@ -67,7 +67,7 @@ class ParametreAdminController extends Controller
         if ($nature->doleances()->exists()) {
             return response()->json([
                 'message' => 'Cette nature est utilisée par des doléances.',
-                'code'    => 'parametre_utilise',
+                'code' => 'parametre_utilise',
             ], 409);
         }
 
@@ -92,9 +92,9 @@ class ParametreAdminController extends Controller
         ]);
 
         $qualite = Qualite::create([
-            'libelle'        => $data['libelle'],
+            'libelle' => $data['libelle'],
             'selectionnable' => true,
-            'ordre'          => (int) Qualite::max('ordre') + 10,
+            'ordre' => (int) Qualite::max('ordre') + 10,
         ]);
         JournalService::action($request, $request->user(), 'creation_qualite', $qualite->libelle, $qualite);
 
@@ -118,7 +118,7 @@ class ParametreAdminController extends Controller
         if ($qualite->doleances()->exists()) {
             return response()->json([
                 'message' => 'Cette qualité est utilisée par des doléances.',
-                'code'    => 'parametre_utilise',
+                'code' => 'parametre_utilise',
             ], 409);
         }
 
@@ -142,8 +142,8 @@ class ParametreAdminController extends Controller
     public function creerModele(Request $request)
     {
         $data = $request->validate([
-            'titre'      => ['required', 'string', 'max:120'],
-            'contenu'    => ['required', 'string', 'max:5000'],
+            'titre' => ['required', 'string', 'max:120'],
+            'contenu' => ['required', 'string', 'max:5000'],
             'type_usage' => ['required', 'in:reponse,conclusion,complement'],
         ]);
 
@@ -156,8 +156,8 @@ class ParametreAdminController extends Controller
     public function modifierModele(Request $request, ModeleMessage $modele)
     {
         $data = $request->validate([
-            'titre'      => ['sometimes', 'string', 'max:120'],
-            'contenu'    => ['sometimes', 'string', 'max:5000'],
+            'titre' => ['sometimes', 'string', 'max:120'],
+            'contenu' => ['sometimes', 'string', 'max:5000'],
             'type_usage' => ['sometimes', 'in:reponse,conclusion,complement'],
         ]);
 
@@ -186,9 +186,9 @@ class ParametreAdminController extends Controller
     public function modifierStatut(Request $request, Statut $statut)
     {
         $data = $request->validate([
-            'libelle'          => ['sometimes', 'string', 'max:80'],
-            'couleur'          => ['sometimes', 'string', 'max:30'],
-            'message_citoyen'  => ['nullable', 'string', 'max:255'],
+            'libelle' => ['sometimes', 'string', 'max:80'],
+            'couleur' => ['sometimes', 'string', 'max:30'],
+            'message_citoyen' => ['nullable', 'string', 'max:255'],
         ]);
 
         $statut->update($data);
@@ -207,11 +207,11 @@ class ParametreAdminController extends Controller
     public function modifierNotifications(Request $request)
     {
         $data = $request->validate([
-            '*'               => ['required', 'array'],
-            '*.evenement'     => ['required', 'string'],
-            '*.destinataire'  => ['required', 'string'],
-            '*.canal_email'   => ['required', 'boolean'],
-            '*.canal_app'     => ['required', 'boolean'],
+            '*' => ['required', 'array'],
+            '*.evenement' => ['required', 'string'],
+            '*.destinataire' => ['required', 'string'],
+            '*.canal_email' => ['required', 'boolean'],
+            '*.canal_app' => ['required', 'boolean'],
         ]);
 
         foreach ($data as $ligne) {
@@ -222,7 +222,7 @@ class ParametreAdminController extends Controller
             if (! $parametre) {
                 return response()->json([
                     'message' => 'Paramètre introuvable.',
-                    'errors'  => ['evenement' => ['Ligne inconnue : '.$ligne['evenement'].'/'.$ligne['destinataire']]],
+                    'errors' => ['evenement' => ['Ligne inconnue : '.$ligne['evenement'].'/'.$ligne['destinataire']]],
                 ], 422);
             }
 
@@ -234,14 +234,14 @@ class ParametreAdminController extends Controller
             ) {
                 return response()->json([
                     'message' => 'Ce paramètre n\'est pas modifiable.',
-                    'errors'  => ['modifiable' => ['Ce paramètre n\'est pas modifiable.']],
+                    'errors' => ['modifiable' => ['Ce paramètre n\'est pas modifiable.']],
                 ], 422);
             }
 
             if ($parametre->modifiable) {
                 $parametre->update([
                     'canal_email' => $ligne['canal_email'],
-                    'canal_app'   => $canalApp,
+                    'canal_app' => $canalApp,
                 ]);
             }
         }

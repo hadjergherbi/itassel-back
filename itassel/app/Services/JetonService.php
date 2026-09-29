@@ -23,10 +23,10 @@ class JetonService
 
         JetonMotDePasse::create([
             'id_utilisateur' => $utilisateur->id_utilisateur,
-            'type'           => $type,
-            'jeton_hash'     => hash('sha256', $clair),
-            'expire_le'      => $expire,
-            'id_createur'    => $createur?->id_utilisateur,
+            'type' => $type,
+            'jeton_hash' => hash('sha256', $clair),
+            'expire_le' => $expire,
+            'id_createur' => $createur?->id_utilisateur,
         ]);
 
         return $clair;

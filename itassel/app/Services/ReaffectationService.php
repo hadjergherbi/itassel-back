@@ -16,8 +16,8 @@ class ReaffectationService
     public static function appliquerAuDossier(Doleance $doleance, Service $destination): void
     {
         $doleance->update([
-            'id_service'      => $destination->id_service,
-            'id_responsable'  => $destination->id_responsable,
+            'id_service' => $destination->id_service,
+            'id_responsable' => $destination->id_responsable,
         ]);
         $doleance->unsetRelation('service');
         $doleance->unsetRelation('responsable');
@@ -35,18 +35,18 @@ class ReaffectationService
 
         foreach ($enAttente as $demande) {
             $demande->update([
-                'etat'          => 'sans_suite',
+                'etat' => 'sans_suite',
                 'date_decision' => now(),
             ]);
         }
 
         Historique::create([
-            'date_evenement'    => now(),
-            'type_evenement'    => 'reaffectation_sans_suite',
-            'detail'            => 'Demande de réaffectation classée sans suite : dossier conclu.',
+            'date_evenement' => now(),
+            'type_evenement' => 'reaffectation_sans_suite',
+            'detail' => 'Demande de réaffectation classée sans suite : dossier conclu.',
             'visible_demandeur' => false,
-            'id_doleance'       => $doleance->id_doleance,
-            'id_utilisateur'    => $acteur->id_utilisateur,
+            'id_doleance' => $doleance->id_doleance,
+            'id_utilisateur' => $acteur->id_utilisateur,
         ]);
     }
 
@@ -97,11 +97,11 @@ class ReaffectationService
     public static function codeConflitEtat(string $etat): string
     {
         return match ($etat) {
-            'acceptee'   => 'deja_acceptee',
-            'refusee'    => 'deja_refusee',
-            'annulee'    => 'deja_annulee',
+            'acceptee' => 'deja_acceptee',
+            'refusee' => 'deja_refusee',
+            'annulee' => 'deja_annulee',
             'sans_suite' => 'sans_suite',
-            default      => 'etat_invalide',
+            default => 'etat_invalide',
         };
     }
 }

@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Mail\InvitationCompteMail;
 use App\Mail\ReinitialisationMotDePasseMail;
-use App\Models\Journal;
 use App\Models\JetonMotDePasse;
+use App\Models\Journal;
 use App\Services\JetonService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class AuthCompteTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {

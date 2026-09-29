@@ -35,7 +35,7 @@ class NotificationAdminController extends Controller
         if ($notification->etat_envoi === 'transmis') {
             return response()->json([
                 'message' => 'Cet email a déjà été transmis.',
-                'code'    => 'deja_transmis',
+                'code' => 'deja_transmis',
             ], 409);
         }
 
@@ -44,7 +44,7 @@ class NotificationAdminController extends Controller
         if (! $mail) {
             return response()->json([
                 'message' => 'Le renvoi n\'est pas disponible pour ce type de notification.',
-                'errors'  => ['type_notification' => ['Le renvoi n\'est pas disponible pour ce type de notification.']],
+                'errors' => ['type_notification' => ['Le renvoi n\'est pas disponible pour ce type de notification.']],
             ], 422);
         }
 
@@ -54,7 +54,7 @@ class NotificationAdminController extends Controller
         $emailsSuperAdmin = Utilisateur::where('role', 'super_admin')->pluck('email');
 
         return response()->json([
-            'message'      => 'Email renvoyé.',
+            'message' => 'Email renvoyé.',
             'notification' => $notification->versApi($notification->doleance?->email, $emailsSuperAdmin),
         ]);
     }

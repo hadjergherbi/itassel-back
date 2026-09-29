@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 class IssuesWorkflowTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {

@@ -23,12 +23,12 @@ class CompteService
 
     public static function creer(array $donnees, Utilisateur $acteur, Request $request): Utilisateur
     {
-        $utilisateur = new Utilisateur();
+        $utilisateur = new Utilisateur;
         $utilisateur->fill([
-            'nom'        => $donnees['nom'],
-            'prenom'     => $donnees['prenom'],
-            'email'      => $donnees['email'],
-            'actif'      => true,
+            'nom' => $donnees['nom'],
+            'prenom' => $donnees['prenom'],
+            'email' => $donnees['email'],
+            'actif' => true,
             'id_service' => $donnees['role'] === 'super_admin' ? null : $donnees['id_service'],
         ]);
         $utilisateur->role = $donnees['role'];
@@ -105,7 +105,7 @@ class CompteService
             } catch (\Throwable $e) {
                 Log::error('Échec envoi mail réinitialisation', [
                     'id_utilisateur' => $utilisateur->id_utilisateur,
-                    'erreur'         => $e->getMessage(),
+                    'erreur' => $e->getMessage(),
                 ]);
             }
         })->afterResponse();
@@ -159,7 +159,7 @@ class CompteService
 
         $enregistrement->update(['utilise_le' => now()]);
 
-        \App\Models\JetonMotDePasse::where('id_utilisateur', $utilisateur->id_utilisateur)
+        JetonMotDePasse::where('id_utilisateur', $utilisateur->id_utilisateur)
             ->whereNull('utilise_le')
             ->update(['utilise_le' => now()]);
 
@@ -208,8 +208,8 @@ class CompteService
 
         return [
             'valide' => (bool) $valide,
-            'type'   => $valide ? $enregistrement->type : null,
-            'email'  => $valide ? static::masquerEmail($utilisateur->email) : null,
+            'type' => $valide ? $enregistrement->type : null,
+            'email' => $valide ? static::masquerEmail($utilisateur->email) : null,
             'prenom' => $valide ? $utilisateur->prenom : null,
         ];
     }

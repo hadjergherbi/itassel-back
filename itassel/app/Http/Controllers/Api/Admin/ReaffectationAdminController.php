@@ -61,7 +61,7 @@ class ReaffectationAdminController extends Controller
 
         $data = $request->validate([
             'id_service_propose' => ['nullable', 'integer', 'exists:services,id_service'],
-            'motif'              => ['required', 'string', 'max:2000'],
+            'motif' => ['required', 'string', 'max:2000'],
         ]);
 
         if (ReaffectationService::dossierConclu($doleance)) {
@@ -78,21 +78,21 @@ class ReaffectationAdminController extends Controller
 
         [$demande, $evenement] = DB::transaction(function () use ($doleance, $utilisateur, $data) {
             $demande = Reaffectation::create([
-                'etat'               => 'en_attente',
-                'motif'              => $data['motif'],
-                'date_demande'       => now(),
-                'id_doleance'        => $doleance->id_doleance,
-                'id_demandeur'       => $utilisateur->id_utilisateur,
+                'etat' => 'en_attente',
+                'motif' => $data['motif'],
+                'date_demande' => now(),
+                'id_doleance' => $doleance->id_doleance,
+                'id_demandeur' => $utilisateur->id_utilisateur,
                 'id_service_propose' => $data['id_service_propose'] ?? null,
             ]);
 
             $evenement = Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'reaffectation_demande',
-                'detail'            => $data['motif'],
+                'date_evenement' => now(),
+                'type_evenement' => 'reaffectation_demande',
+                'detail' => $data['motif'],
                 'visible_demandeur' => false,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $utilisateur->id_utilisateur,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $utilisateur->id_utilisateur,
             ]);
 
             return [$demande, $evenement];
@@ -118,7 +118,7 @@ class ReaffectationAdminController extends Controller
         );
 
         return response()->json([
-            'message'       => 'Demande de réaffectation enregistrée.',
+            'message' => 'Demande de réaffectation enregistrée.',
             'reaffectation' => $demande->fresh()->versApi(),
         ], 201);
     }
@@ -145,17 +145,17 @@ class ReaffectationAdminController extends Controller
 
         DB::transaction(function () use ($demande, $utilisateur, $data) {
             $demande->update([
-                'etat'          => 'annulee',
+                'etat' => 'annulee',
                 'date_decision' => now(),
             ]);
 
             Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'reaffectation_annulee',
-                'detail'            => $data['motif'],
+                'date_evenement' => now(),
+                'type_evenement' => 'reaffectation_annulee',
+                'detail' => $data['motif'],
                 'visible_demandeur' => false,
-                'id_doleance'       => $demande->id_doleance,
-                'id_utilisateur'    => $utilisateur->id_utilisateur,
+                'id_doleance' => $demande->id_doleance,
+                'id_utilisateur' => $utilisateur->id_utilisateur,
             ]);
         });
 
@@ -168,7 +168,7 @@ class ReaffectationAdminController extends Controller
         );
 
         return response()->json([
-            'message'       => 'Demande de réaffectation annulée.',
+            'message' => 'Demande de réaffectation annulée.',
             'reaffectation' => $demande->fresh()->versApi(),
         ]);
     }
@@ -195,18 +195,18 @@ class ReaffectationAdminController extends Controller
 
         $evenement = DB::transaction(function () use ($demande, $utilisateur, $data) {
             $demande->update([
-                'etat'          => 'refusee',
+                'etat' => 'refusee',
                 'date_decision' => now(),
-                'id_decideur'   => $utilisateur->id_utilisateur,
+                'id_decideur' => $utilisateur->id_utilisateur,
             ]);
 
             return Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'reaffectation_refusee',
-                'detail'            => $data['motif'],
+                'date_evenement' => now(),
+                'type_evenement' => 'reaffectation_refusee',
+                'detail' => $data['motif'],
                 'visible_demandeur' => false,
-                'id_doleance'       => $demande->id_doleance,
-                'id_utilisateur'    => $utilisateur->id_utilisateur,
+                'id_doleance' => $demande->id_doleance,
+                'id_utilisateur' => $utilisateur->id_utilisateur,
             ]);
         });
 
@@ -216,8 +216,8 @@ class ReaffectationAdminController extends Controller
                 $demande->doleance,
                 [
                     'demandeur_reaffectation' => $demande->demandeur,
-                    'titre'                   => "Réaffectation refusée — {$demande->doleance->reference}",
-                    'texte'                   => $data['motif'],
+                    'titre' => "Réaffectation refusée — {$demande->doleance->reference}",
+                    'texte' => $data['motif'],
                 ],
                 $utilisateur,
                 $evenement->id_evenement,
@@ -233,7 +233,7 @@ class ReaffectationAdminController extends Controller
         );
 
         return response()->json([
-            'message'       => 'Demande de réaffectation refusée.',
+            'message' => 'Demande de réaffectation refusée.',
             'reaffectation' => $demande->fresh()->versApi(),
         ]);
     }
@@ -252,8 +252,8 @@ class ReaffectationAdminController extends Controller
 
         $data = $request->validate([
             'id_service_destination' => ['required', 'integer', 'exists:services,id_service'],
-            'motif'                  => ['nullable', 'string', 'max:2000'],
-            'notifier_responsable'   => ['nullable', 'boolean'],
+            'motif' => ['nullable', 'string', 'max:2000'],
+            'notifier_responsable' => ['nullable', 'boolean'],
         ]);
 
         if ($demande->etat !== 'en_attente') {
@@ -267,7 +267,7 @@ class ReaffectationAdminController extends Controller
         if ((int) $destination->id_service === (int) $doleance->id_service) {
             return response()->json([
                 'message' => 'Le service de destination doit être différent du service actuel.',
-                'errors'  => ['id_service_destination' => ['Le service de destination doit être différent du service actuel.']],
+                'errors' => ['id_service_destination' => ['Le service de destination doit être différent du service actuel.']],
             ], 422);
         }
 
@@ -276,13 +276,13 @@ class ReaffectationAdminController extends Controller
         $resultat = $this->transferer($request, $doleance, $destination, $utilisateur, $demande, $nomOrigine, $motif !== '' ? $motif : null, $notifier);
 
         return response()->json([
-            'message'                     => 'Doléance réaffectée.',
-            'doleance'                    => [
+            'message' => 'Doléance réaffectée.',
+            'doleance' => [
                 'reference' => $doleance->reference,
-                'service'   => $destination->nom_service,
+                'service' => $destination->nom_service,
             ],
-            'demande_reglee'              => true,
-            'email_nouveau_responsable'   => $resultat['email_nouveau_responsable'],
+            'demande_reglee' => true,
+            'email_nouveau_responsable' => $resultat['email_nouveau_responsable'],
         ]);
     }
 
@@ -300,8 +300,8 @@ class ReaffectationAdminController extends Controller
 
         $data = $request->validate([
             'id_service_destination' => ['required', 'integer', 'exists:services,id_service'],
-            'motif'                  => ['required', 'string', 'max:2000'],
-            'notifier_responsable'   => ['nullable', 'boolean'],
+            'motif' => ['required', 'string', 'max:2000'],
+            'notifier_responsable' => ['nullable', 'boolean'],
         ]);
 
         $destination = Service::findOrFail($data['id_service_destination']);
@@ -315,7 +315,7 @@ class ReaffectationAdminController extends Controller
         if ((int) $destination->id_service === (int) $doleance->id_service) {
             return response()->json([
                 'message' => 'Le service de destination doit être différent du service actuel.',
-                'errors'  => ['id_service_destination' => ['Le service de destination doit être différent du service actuel.']],
+                'errors' => ['id_service_destination' => ['Le service de destination doit être différent du service actuel.']],
             ], 422);
         }
 
@@ -337,12 +337,12 @@ class ReaffectationAdminController extends Controller
         );
 
         return response()->json([
-            'message'                   => 'Doléance réaffectée.',
-            'doleance'                  => [
+            'message' => 'Doléance réaffectée.',
+            'doleance' => [
                 'reference' => $doleance->reference,
-                'service'   => $destination->nom_service,
+                'service' => $destination->nom_service,
             ],
-            'demande_reglee'            => $demande !== null,
+            'demande_reglee' => $demande !== null,
             'email_nouveau_responsable' => $resultat['email_nouveau_responsable'],
         ]);
     }
@@ -362,21 +362,21 @@ class ReaffectationAdminController extends Controller
         $evenement = DB::transaction(function () use ($doleance, $destination, $decideur, $demande, $nomOrigine, $motifDirect) {
             if ($demande) {
                 $demande->update([
-                    'etat'                    => 'acceptee',
-                    'date_decision'           => now(),
-                    'id_decideur'             => $decideur->id_utilisateur,
-                    'id_service_destination'  => $destination->id_service,
+                    'etat' => 'acceptee',
+                    'date_decision' => now(),
+                    'id_decideur' => $decideur->id_utilisateur,
+                    'id_service_destination' => $destination->id_service,
                 ]);
             } else {
                 Reaffectation::create([
-                    'etat'                    => 'acceptee',
-                    'motif'                   => $motifDirect,
-                    'date_demande'            => now(),
-                    'date_decision'           => now(),
-                    'id_doleance'             => $doleance->id_doleance,
-                    'id_demandeur'            => $decideur->id_utilisateur,
-                    'id_decideur'             => $decideur->id_utilisateur,
-                    'id_service_destination'  => $destination->id_service,
+                    'etat' => 'acceptee',
+                    'motif' => $motifDirect,
+                    'date_demande' => now(),
+                    'date_decision' => now(),
+                    'id_doleance' => $doleance->id_doleance,
+                    'id_demandeur' => $decideur->id_utilisateur,
+                    'id_decideur' => $decideur->id_utilisateur,
+                    'id_service_destination' => $destination->id_service,
                 ]);
             }
 
@@ -395,12 +395,12 @@ class ReaffectationAdminController extends Controller
             }
 
             return Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'reaffectation',
-                'detail'            => implode("\n", $lignes),
+                'date_evenement' => now(),
+                'type_evenement' => 'reaffectation',
+                'detail' => implode("\n", $lignes),
                 'visible_demandeur' => false,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $decideur->id_utilisateur,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $decideur->id_utilisateur,
             ]);
         });
 
@@ -413,8 +413,8 @@ class ReaffectationAdminController extends Controller
                 $doleance,
                 [
                     'demandeur_reaffectation' => $auteur,
-                    'titre'                   => "Réaffectation acceptée — {$doleance->reference}",
-                    'texte'                   => "Le dossier {$doleance->reference} a été réaffecté vers {$destination->nom_service}.",
+                    'titre' => "Réaffectation acceptée — {$doleance->reference}",
+                    'texte' => "Le dossier {$doleance->reference} a été réaffecté vers {$destination->nom_service}.",
                 ],
                 $decideur,
                 $evenement->id_evenement,

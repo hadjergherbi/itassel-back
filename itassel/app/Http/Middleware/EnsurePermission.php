@@ -14,7 +14,7 @@ class EnsurePermission
         if (! $utilisateur || ! $utilisateur->peut($code)) {
             return response()->json([
                 'message' => 'Action non autorisée pour votre rôle.',
-                'code'    => 'permission_refusee',
+                'code' => 'permission_refusee',
             ], 403);
         }
 

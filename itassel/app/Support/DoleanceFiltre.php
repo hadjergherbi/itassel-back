@@ -15,27 +15,27 @@ class DoleanceFiltre
     public static function valider(Request $request, bool $avecPage = true): array
     {
         $regles = [
-            'statut'            => ['nullable'],
-            'service'           => ['nullable', 'integer'],
-            'q'                 => ['nullable', 'string', 'max:100'],
-            'nature'            => ['nullable', 'integer', 'exists:natures,id_nature'],
-            'natures'           => ['nullable', 'array'],
-            'natures.*'         => ['integer', 'exists:natures,id_nature'],
-            'periode'           => ['nullable', 'string', 'in:7j,30j,3m,6m,annee'],
-            'a_examiner'        => ['nullable', 'integer', 'in:0,1'],
-            'age_min'           => ['nullable', 'integer', 'min:1'],
+            'statut' => ['nullable'],
+            'service' => ['nullable', 'integer'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'nature' => ['nullable', 'integer', 'exists:natures,id_nature'],
+            'natures' => ['nullable', 'array'],
+            'natures.*' => ['integer', 'exists:natures,id_nature'],
+            'periode' => ['nullable', 'string', 'in:7j,30j,3m,6m,annee'],
+            'a_examiner' => ['nullable', 'integer', 'in:0,1'],
+            'age_min' => ['nullable', 'integer', 'min:1'],
             'info_sans_reponse' => ['nullable', 'integer', 'in:0,1'],
-            'reaffectation'     => ['nullable', 'string', 'in:en_attente'],
-            'sans_responsable'  => ['nullable', 'integer', 'in:0,1'],
-            'issue'             => ['nullable', 'string'],
-            'a_reclasser'       => ['nullable', 'integer', 'in:0,1'],
-            'date_debut'        => ['nullable', 'date'],
-            'date_fin'          => ['nullable', 'date'],
-            'tri'               => ['nullable', 'string', 'in:date_depot,reference'],
-            'sens'              => ['nullable', 'string', 'in:asc,desc'],
-            'par_page'          => ['nullable', 'integer', 'min:1', 'max:100'],
-            'format'            => ['nullable', 'string', 'in:csv,pdf'],
-            'graphiques'        => ['nullable', 'boolean'],
+            'reaffectation' => ['nullable', 'string', 'in:en_attente'],
+            'sans_responsable' => ['nullable', 'integer', 'in:0,1'],
+            'issue' => ['nullable', 'string'],
+            'a_reclasser' => ['nullable', 'integer', 'in:0,1'],
+            'date_debut' => ['nullable', 'date'],
+            'date_fin' => ['nullable', 'date'],
+            'tri' => ['nullable', 'string', 'in:date_depot,reference'],
+            'sens' => ['nullable', 'string', 'in:asc,desc'],
+            'par_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'format' => ['nullable', 'string', 'in:csv,pdf'],
+            'graphiques' => ['nullable', 'boolean'],
         ];
 
         if ($avecPage) {
@@ -88,9 +88,9 @@ class DoleanceFiltre
             $texte = '%'.addcslashes($filtres['q'], '%_').'%';
             $query->where(function ($w) use ($texte) {
                 $w->where('reference', 'like', $texte)
-                  ->orWhere('nom', 'like', $texte)
-                  ->orWhere('prenom', 'like', $texte)
-                  ->orWhere('objet', 'like', $texte);
+                    ->orWhere('nom', 'like', $texte)
+                    ->orWhere('prenom', 'like', $texte)
+                    ->orWhere('objet', 'like', $texte);
             });
         }
 
@@ -105,10 +105,10 @@ class DoleanceFiltre
 
         if (! empty($filtres['periode'])) {
             $depuis = match ($filtres['periode']) {
-                '7j'    => now()->subDays(7),
-                '30j'   => now()->subDays(30),
-                '3m'    => now()->subMonths(3),
-                '6m'    => now()->subMonths(6),
+                '7j' => now()->subDays(7),
+                '30j' => now()->subDays(30),
+                '3m' => now()->subMonths(3),
+                '6m' => now()->subMonths(6),
                 'annee' => now()->startOfYear(),
             };
             $query->where('date_depot', '>=', $depuis);
@@ -183,10 +183,10 @@ class DoleanceFiltre
     {
         return $query->where(function ($q) {
             $q->whereHas('statut', fn ($s) => $s->whereIn('code', [Statut::NON_FONDEE, Statut::CLOTUREE]))
-              ->orWhere(function ($r) {
-                  $r->whereHas('statut', fn ($s) => $s->where('code', Statut::RESOLUE))
-                    ->whereHas('nature', fn ($n) => $n->where('famille', 'demande'));
-              });
+                ->orWhere(function ($r) {
+                    $r->whereHas('statut', fn ($s) => $s->where('code', Statut::RESOLUE))
+                        ->whereHas('nature', fn ($n) => $n->where('famille', 'demande'));
+                });
         });
     }
 

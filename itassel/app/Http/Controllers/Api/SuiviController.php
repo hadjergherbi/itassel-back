@@ -37,12 +37,12 @@ class SuiviController extends Controller
                 $codeEnClair = (string) random_int(100000, 999999);
 
                 CodeVerification::create([
-                    'code_hash'       => hash('sha256', $codeEnClair),
-                    'date_creation'   => now(),
+                    'code_hash' => hash('sha256', $codeEnClair),
+                    'date_creation' => now(),
                     'date_expiration' => now()->addMinutes($dureeValidite),
-                    'nombre_essais'   => 0,
-                    'utilise'         => false,
-                    'id_doleance'     => $doleance->id_doleance,
+                    'nombre_essais' => 0,
+                    'utilise' => false,
+                    'id_doleance' => $doleance->id_doleance,
                 ]);
 
                 Cache::put($cleLimite, $demandes + 1, now()->addHour());
@@ -56,8 +56,8 @@ class SuiviController extends Controller
         }
 
         return response()->json([
-            'message' => "Si cette référence existe, un code à usage unique a été envoyé "
-                       . "à l'adresse email du dossier. Il expire dans ".$dureeValidite." minutes.",
+            'message' => 'Si cette référence existe, un code à usage unique a été envoyé '
+                       ."à l'adresse email du dossier. Il expire dans ".$dureeValidite.' minutes.',
         ]);
     }
 
@@ -68,7 +68,7 @@ class SuiviController extends Controller
     {
         $data = $request->validate([
             'reference' => ['required', 'string', 'max:20'],
-            'code'      => ['required', 'digits:6'],
+            'code' => ['required', 'digits:6'],
         ]);
 
         $doleance = Doleance::where('reference', $data['reference'])->first();
@@ -89,6 +89,7 @@ class SuiviController extends Controller
 
         if (! $code->correspondA($data['code'])) {
             $code->increment('nombre_essais');
+
             return response()->json(['message' => $messageEchec], 422);
         }
 
@@ -98,7 +99,7 @@ class SuiviController extends Controller
         Cache::put("suivi:session:{$jeton}", $doleance->id_doleance, now()->addMinutes(30));
 
         return response()->json([
-            'jeton_session'   => $jeton,
+            'jeton_session' => $jeton,
             'expire_dans_min' => 30,
         ]);
     }

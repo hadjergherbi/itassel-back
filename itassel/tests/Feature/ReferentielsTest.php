@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 class ReferentielsTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -63,9 +63,9 @@ class ReferentielsTest extends TestCase
     public function test_une_ancienne_qualite_utilisee_n_est_plus_selectionnable(): void
     {
         $obsolete = Qualite::create([
-            'libelle'        => 'Citoyen',
+            'libelle' => 'Citoyen',
             'selectionnable' => true,
-            'ordre'          => 99,
+            'ordre' => 99,
         ]);
         $this->doleance(['id_qualite' => $obsolete->id_qualite]);
 
@@ -87,9 +87,9 @@ class ReferentielsTest extends TestCase
     public function test_une_ancienne_qualite_inutilisee_est_supprimee(): void
     {
         Qualite::create([
-            'libelle'        => 'Sportif',
+            'libelle' => 'Sportif',
             'selectionnable' => true,
-            'ordre'          => 99,
+            'ordre' => 99,
         ]);
 
         Qualite::synchroniserReferentiel();

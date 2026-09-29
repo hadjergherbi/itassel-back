@@ -26,6 +26,7 @@ class DemanderComplement extends Command
 
         if (! $doleance) {
             $this->error("Aucune doléance avec la référence {$reference}.");
+
             return self::FAILURE;
         }
 
@@ -35,6 +36,7 @@ class DemanderComplement extends Command
 
         if (! $auteur) {
             $this->error("Aucun utilisateur trouvé pour jouer le rôle de l'administrateur. Créez-en un dans la table utilisateurs.");
+
             return self::FAILURE;
         }
 
@@ -47,6 +49,7 @@ class DemanderComplement extends Command
             );
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
+
             return self::FAILURE;
         }
 

@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 class MonCompteTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {

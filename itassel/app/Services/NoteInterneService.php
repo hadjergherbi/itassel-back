@@ -79,11 +79,11 @@ class NoteInterneService
         static::validerMentions($doleance, $auteur, $idsMentions);
 
         $note = NoteInterne::create([
-            'contenu'       => $contenu,
+            'contenu' => $contenu,
             'date_creation' => now(),
-            'id_doleance'   => $doleance->id_doleance,
-            'id_auteur'     => $auteur->id_utilisateur,
-            'etiquette'     => $etiquette,
+            'id_doleance' => $doleance->id_doleance,
+            'id_auteur' => $auteur->id_utilisateur,
+            'etiquette' => $etiquette,
         ]);
 
         static::attacherEtNotifier($request, $doleance, $note, $auteur, $idsMentions, $notifierEmail);
@@ -223,11 +223,11 @@ class NoteInterneService
 
             NotificationApp::create([
                 'id_utilisateur' => $cible->id_utilisateur,
-                'evenement'      => 'mention_note',
-                'titre'          => mb_substr($titre, 0, 150),
-                'message'        => $extrait,
-                'id_doleance'    => $doleance->id_doleance,
-                'id_note'        => $note->id_note,
+                'evenement' => 'mention_note',
+                'titre' => mb_substr($titre, 0, 150),
+                'message' => $extrait,
+                'id_doleance' => $doleance->id_doleance,
+                'id_note' => $note->id_note,
             ]);
 
             JournalService::action(
@@ -266,7 +266,7 @@ class NoteInterneService
             } catch (\Throwable $e) {
                 Log::error('Échec envoi mail mention de note', [
                     'id_utilisateur' => $cible->id_utilisateur,
-                    'erreur'         => $e->getMessage(),
+                    'erreur' => $e->getMessage(),
                 ]);
             }
         })->afterResponse();
@@ -288,11 +288,11 @@ class NoteInterneService
     {
         return [
             'id_utilisateur' => $utilisateur->id_utilisateur,
-            'nom'            => $utilisateur->nom,
-            'prenom'         => $utilisateur->prenom,
-            'initiales'      => $utilisateur->initiales(),
-            'libelle_role'   => $utilisateur->libelleRoleAffiche(),
-            'service'        => $utilisateur->service?->nom_service,
+            'nom' => $utilisateur->nom,
+            'prenom' => $utilisateur->prenom,
+            'initiales' => $utilisateur->initiales(),
+            'libelle_role' => $utilisateur->libelleRoleAffiche(),
+            'service' => $utilisateur->service?->nom_service,
         ];
     }
 }

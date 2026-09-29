@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Nature;
 use App\Models\Service;
-use App\Models\Statut;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\ItasselHelpers;
@@ -12,7 +11,7 @@ use Tests\TestCase;
 
 class ExportDoleancesTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -36,13 +35,13 @@ class ExportDoleancesTest extends TestCase
 
         $this->doleance([
             'id_service' => $sport->id_service,
-            'id_nature'  => $nature->id_nature,
-            'reference'  => 'ITS-2026-2001',
+            'id_nature' => $nature->id_nature,
+            'reference' => 'ITS-2026-2001',
         ]);
         $this->doleance([
             'id_service' => $jeunesse->id_service,
-            'id_nature'  => $nature->id_nature,
-            'reference'  => 'ITS-2026-2002',
+            'id_nature' => $nature->id_nature,
+            'reference' => 'ITS-2026-2002',
         ]);
 
         $this->connecter($admin);

@@ -10,6 +10,7 @@ class Journal extends Model
     use HasFactory;
 
     protected $table = 'journaux';
+
     protected $primaryKey = 'id_journal';
 
     protected $fillable = [

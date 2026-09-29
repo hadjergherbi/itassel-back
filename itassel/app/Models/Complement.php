@@ -18,10 +18,10 @@ class Complement extends Model
     ];
 
     protected $casts = [
-        'date_demande'     => 'datetime',
-        'date_reponse'     => 'datetime',
-        'date_annulation'  => 'datetime',
-        'piece_exigee'     => 'boolean',
+        'date_demande' => 'datetime',
+        'date_reponse' => 'datetime',
+        'date_annulation' => 'datetime',
+        'piece_exigee' => 'boolean',
     ];
 
     public function doleance()

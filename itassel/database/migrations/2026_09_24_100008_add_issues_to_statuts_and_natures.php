@@ -25,45 +25,45 @@ return new class extends Migration
             DB::table('statuts')->updateOrInsert(
                 ['code' => $code],
                 [
-                    'libelle'          => $libelle,
-                    'couleur'          => $couleur,
-                    'message_citoyen'  => $message,
-                    'selectionnable'   => $selectionnable,
-                    'ordre'            => $ordre,
-                    'created_at'       => now(),
-                    'updated_at'       => now(),
+                    'libelle' => $libelle,
+                    'couleur' => $couleur,
+                    'message_citoyen' => $message,
+                    'selectionnable' => $selectionnable,
+                    'ordre' => $ordre,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]
             );
         }
 
         $messages = [
-            'resolue'          => ['Une réponse est disponible.', 30, true],
+            'resolue' => ['Une réponse est disponible.', 30, true],
             'reponse_apportee' => ['Une réponse à votre demande est disponible.', 40, true],
-            'hors_competence'  => ['Votre demande relève d\'un autre organisme.', 50, true],
-            'non_retenue'      => ['Votre réclamation n\'a pas été retenue après examen.', 60, true],
-            'double'           => ['Votre demande a déjà été enregistrée.', 70, true],
-            'nouvelle'         => [null, 10, true],
-            'en_cours'         => [null, 20, true],
+            'hors_competence' => ['Votre demande relève d\'un autre organisme.', 50, true],
+            'non_retenue' => ['Votre réclamation n\'a pas été retenue après examen.', 60, true],
+            'double' => ['Votre demande a déjà été enregistrée.', 70, true],
+            'nouvelle' => [null, 10, true],
+            'en_cours' => [null, 20, true],
             'information_demandee' => [null, 25, true],
         ];
 
         foreach ($messages as $code => [$message, $ordre, $selectionnable]) {
             DB::table('statuts')->where('code', $code)->update([
                 'message_citoyen' => $message,
-                'ordre'           => $ordre,
-                'selectionnable'  => $selectionnable,
+                'ordre' => $ordre,
+                'selectionnable' => $selectionnable,
             ]);
         }
 
         DB::table('statuts')->where('code', 'non_fondee')->update([
-            'libelle'         => 'Ancien classement — non fondée',
-            'selectionnable'  => false,
-            'ordre'           => 80,
+            'libelle' => 'Ancien classement — non fondée',
+            'selectionnable' => false,
+            'ordre' => 80,
         ]);
 
         DB::table('statuts')->where('code', 'cloturee')->update([
             'selectionnable' => false,
-            'ordre'          => 90,
+            'ordre' => 90,
         ]);
 
         Schema::table('natures', function (Blueprint $table) {
@@ -89,8 +89,8 @@ return new class extends Migration
         });
 
         DB::table('statuts')->where('code', 'non_fondee')->update([
-            'libelle'         => 'Doléance non fondée',
-            'selectionnable'  => true,
+            'libelle' => 'Doléance non fondée',
+            'selectionnable' => true,
         ]);
 
         DB::table('statuts')->where('code', 'cloturee')->update([

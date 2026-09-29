@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -22,11 +22,11 @@ return new class extends Migration
         });
 
         if (Schema::getConnection()->getDriverName() !== 'sqlite') {
-            DB::statement("
+            DB::statement('
                 ALTER TABLE codes_verification
                 ADD CONSTRAINT ck_code_essais CHECK (nombre_essais BETWEEN 0 AND 5),
                 ADD CONSTRAINT ck_code_dates CHECK (date_expiration > date_creation)
-            ");
+            ');
         }
     }
 

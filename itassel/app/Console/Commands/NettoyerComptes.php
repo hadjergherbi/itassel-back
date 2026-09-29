@@ -7,6 +7,7 @@ use App\Models\Utilisateur;
 use App\Services\JournalService;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -265,7 +266,7 @@ class NettoyerComptes extends Command
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Utilisateur>
+     * @return Collection<int, Utilisateur>
      */
     private function autresComptes(Utilisateur $super, Utilisateur $service, bool $verrou = false)
     {
@@ -312,12 +313,12 @@ class NettoyerComptes extends Command
         }
 
         return [
-            'id'        => $compte->id_utilisateur,
-            'email'     => $compte->email,
-            'role'      => $compte->role,
-            'action'    => implode(', ', $morceaux),
+            'id' => $compte->id_utilisateur,
+            'email' => $compte->email,
+            'role' => $compte->role,
+            'action' => implode(', ', $morceaux),
             'desactive' => $desactive,
-            'soft'      => $soft,
+            'soft' => $soft,
         ];
     }
 

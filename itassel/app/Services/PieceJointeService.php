@@ -25,8 +25,8 @@ class PieceJointeService
 
         $image = match ($extension) {
             'jpg', 'jpeg' => @imagecreatefromjpeg($chemin),
-            'png'         => @imagecreatefrompng($chemin),
-            default       => false,
+            'png' => @imagecreatefrompng($chemin),
+            default => false,
         };
 
         if ($image === false) {
@@ -35,8 +35,8 @@ class PieceJointeService
 
         $ok = match ($extension) {
             'jpg', 'jpeg' => imagejpeg($image, $chemin, 90),
-            'png'         => imagepng($image, $chemin),
-            default       => false,
+            'png' => imagepng($image, $chemin),
+            default => false,
         };
 
         imagedestroy($image);
@@ -67,12 +67,12 @@ class PieceJointeService
         $chemin = $fichier->store('pieces-jointes/'.$doleance->id_doleance, 'local');
 
         return PieceJointe::create([
-            'nom_fichier'   => $fichier->getClientOriginalName(),
-            'type'          => $extension === 'jpeg' ? 'jpg' : $extension,
-            'taille'        => filesize($fichier->getRealPath()) ?: $fichier->getSize(),
-            'chemin'        => $chemin,
-            'origine'       => $origine,
-            'id_doleance'   => $doleance->id_doleance,
+            'nom_fichier' => $fichier->getClientOriginalName(),
+            'type' => $extension === 'jpeg' ? 'jpg' : $extension,
+            'taille' => filesize($fichier->getRealPath()) ?: $fichier->getSize(),
+            'chemin' => $chemin,
+            'origine' => $origine,
+            'id_doleance' => $doleance->id_doleance,
             'id_complement' => $idComplement,
         ]);
     }

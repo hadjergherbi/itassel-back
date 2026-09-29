@@ -15,12 +15,12 @@ class UtilisateurFactory extends Factory
     public function definition(): array
     {
         return [
-            'nom'          => fake()->lastName(),
-            'prenom'       => fake()->firstName(),
-            'email'                   => fake()->unique()->safeEmail(),
-            'actif'                   => true,
-            'id_service'              => Service::factory(),
-            'mot_de_passe_defini_le'  => now(),
+            'nom' => fake()->lastName(),
+            'prenom' => fake()->firstName(),
+            'email' => fake()->unique()->safeEmail(),
+            'actif' => true,
+            'id_service' => Service::factory(),
+            'mot_de_passe_defini_le' => now(),
         ];
     }
 
@@ -39,7 +39,7 @@ class UtilisateurFactory extends Factory
     public function superAdmin(): static
     {
         return $this->state(fn () => [
-            'role'       => 'super_admin',
+            'role' => 'super_admin',
             'id_service' => null,
         ]);
     }
@@ -47,7 +47,7 @@ class UtilisateurFactory extends Factory
     public function adminService(?Service $service = null): static
     {
         return $this->state(fn () => [
-            'role'       => 'admin_service',
+            'role' => 'admin_service',
             'id_service' => $service?->id_service ?? Service::factory(),
         ]);
     }

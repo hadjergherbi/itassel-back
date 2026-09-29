@@ -14,20 +14,20 @@ class Periode
         $fin = now()->endOfDay();
 
         [$debut, $libelle] = match ($code) {
-            '30j'   => [now()->subDays(30)->startOfDay(), 'Sur 30 jours'],
-            '3m'    => [now()->subMonths(3)->startOfDay(), 'Sur 3 mois'],
-            '6m'    => [now()->subMonths(6)->startOfDay(), 'Sur 6 mois'],
+            '30j' => [now()->subDays(30)->startOfDay(), 'Sur 30 jours'],
+            '3m' => [now()->subMonths(3)->startOfDay(), 'Sur 3 mois'],
+            '6m' => [now()->subMonths(6)->startOfDay(), 'Sur 6 mois'],
             'annee' => [now()->copy()->startOfYear(), 'Depuis janvier'],
         };
 
         return [
-            'code'       => $code,
+            'code' => $code,
             'date_debut' => $debut->toDateString(),
-            'date_fin'   => $fin->toDateString(),
-            'libelle'    => $libelle,
-            'debut'      => $debut,
-            'fin'        => $fin,
-            'nb_mois'    => $code === 'annee' ? 12 : 6,
+            'date_fin' => $fin->toDateString(),
+            'libelle' => $libelle,
+            'debut' => $debut,
+            'fin' => $fin,
+            'nb_mois' => $code === 'annee' ? 12 : 6,
         ];
     }
 

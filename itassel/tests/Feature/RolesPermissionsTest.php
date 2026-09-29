@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 class RolesPermissionsTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {

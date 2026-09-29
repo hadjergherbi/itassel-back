@@ -9,8 +9,8 @@ use App\Http\Requests\Admin\ReclasserDoleanceRequest;
 use App\Models\Complement;
 use App\Models\Doleance;
 use App\Models\Historique;
-use App\Models\NotificationItassel;
 use App\Models\NoteInterne;
+use App\Models\NotificationItassel;
 use App\Models\Reponse;
 use App\Models\Statut;
 use App\Models\Utilisateur;
@@ -41,14 +41,14 @@ class DoleanceActionController extends Controller
         }
 
         $data = $request->validate([
-            'id_statut'             => ['required', 'integer', 'exists:statuts,id_statut'],
-            'message'               => ['nullable', 'string', 'max:2000'],
-            'question'              => ['nullable', 'string', 'max:1000'],
-            'description_piece'     => ['nullable', 'string', 'max:200'],
-            'notifier_demandeur'    => ['nullable', 'boolean'],
-            'notifier_responsable'  => ['nullable', 'boolean'],
-            'reference_initiale'    => ['nullable', 'string', 'max:20'],
-            'organisme_competent'   => ['nullable', 'string', 'max:150'],
+            'id_statut' => ['required', 'integer', 'exists:statuts,id_statut'],
+            'message' => ['nullable', 'string', 'max:2000'],
+            'question' => ['nullable', 'string', 'max:1000'],
+            'description_piece' => ['nullable', 'string', 'max:200'],
+            'notifier_demandeur' => ['nullable', 'boolean'],
+            'notifier_responsable' => ['nullable', 'boolean'],
+            'reference_initiale' => ['nullable', 'string', 'max:20'],
+            'organisme_competent' => ['nullable', 'string', 'max:150'],
         ]);
 
         $doleance->loadMissing('nature');
@@ -145,14 +145,14 @@ class DoleanceActionController extends Controller
             }
 
             return Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'changement_statut',
-                'detail'            => $message !== '' ? $message : null,
+                'date_evenement' => now(),
+                'type_evenement' => 'changement_statut',
+                'detail' => $message !== '' ? $message : null,
                 'visible_demandeur' => true,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $utilisateur->id_utilisateur,
-                'id_statut_avant'   => $statutAvant,
-                'id_statut_apres'   => $nouveau->id_statut,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $utilisateur->id_utilisateur,
+                'id_statut_avant' => $statutAvant,
+                'id_statut_apres' => $nouveau->id_statut,
             ]);
         });
 
@@ -162,15 +162,15 @@ class DoleanceActionController extends Controller
             'changement_statut',
             $doleance,
             [
-                'statut'  => $nouveau,
+                'statut' => $nouveau,
                 'message' => $message !== '' ? $message : null,
-                'titre'   => "Changement de statut — {$doleance->reference}",
-                'texte'   => "Le dossier {$doleance->reference} est passé au statut « {$nouveau->libelle} ».",
+                'titre' => "Changement de statut — {$doleance->reference}",
+                'texte' => "Le dossier {$doleance->reference} est passé au statut « {$nouveau->libelle} ».",
             ],
             $utilisateur,
             $evenement->id_evenement,
             [
-                'notifier_demandeur'   => $notifierDemandeur,
+                'notifier_demandeur' => $notifierDemandeur,
                 'notifier_responsable' => $notifierResponsable,
             ],
         );
@@ -184,8 +184,8 @@ class DoleanceActionController extends Controller
         );
 
         return response()->json([
-            'message'      => 'Statut mis à jour.',
-            'statut'       => $nouveau->versApi(),
+            'message' => 'Statut mis à jour.',
+            'statut' => $nouveau->versApi(),
             'email_envoye' => $resultat['email_demandeur'],
         ]);
     }
@@ -204,7 +204,7 @@ class DoleanceActionController extends Controller
         }
 
         $data = $request->validate([
-            'contenu'  => ['required', 'string', 'max:5000'],
+            'contenu' => ['required', 'string', 'max:5000'],
             'notifier' => ['nullable', 'boolean'],
         ]);
 
@@ -216,19 +216,19 @@ class DoleanceActionController extends Controller
             }
 
             $reponse = Reponse::create([
-                'contenu'          => $data['contenu'],
+                'contenu' => $data['contenu'],
                 'date_publication' => now(),
-                'id_doleance'      => $doleance->id_doleance,
-                'id_auteur'        => $utilisateur->id_utilisateur,
+                'id_doleance' => $doleance->id_doleance,
+                'id_auteur' => $utilisateur->id_utilisateur,
             ]);
 
             // Trace interne : la réponse elle-même apparaît déjà dans le suivi du demandeur.
             $evenement = Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'reponse',
+                'date_evenement' => now(),
+                'type_evenement' => 'reponse',
                 'visible_demandeur' => false,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $utilisateur->id_utilisateur,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $utilisateur->id_utilisateur,
             ]);
 
             return [$reponse, $evenement];
@@ -239,8 +239,8 @@ class DoleanceActionController extends Controller
             $doleance->fresh(),
             [
                 'reponse' => $reponse,
-                'titre'   => "Réponse publiée — {$doleance->reference}",
-                'texte'   => "Une réponse a été publiée pour le dossier {$doleance->reference}.",
+                'titre' => "Réponse publiée — {$doleance->reference}",
+                'texte' => "Une réponse a été publiée pour le dossier {$doleance->reference}.",
             ],
             $utilisateur,
             $evenement->id_evenement,
@@ -250,8 +250,8 @@ class DoleanceActionController extends Controller
         JournalService::action($request, $utilisateur, 'reponse', $doleance->reference, $doleance);
 
         return response()->json([
-            'message'      => 'Réponse publiée.',
-            'reponse'      => $reponse->load('auteur:id_utilisateur,nom,prenom'),
+            'message' => 'Réponse publiée.',
+            'reponse' => $reponse->load('auteur:id_utilisateur,nom,prenom'),
             'email_envoye' => $resultat['email_demandeur'],
         ], 201);
     }
@@ -290,11 +290,11 @@ class DoleanceActionController extends Controller
 
         $maxMentions = (int) config('itassel.notes.max_mentions', 5);
         $data = $request->validate([
-            'contenu'        => ['required', 'string', 'max:2000'],
-            'mentions'       => ['sometimes', 'array', 'max:'.$maxMentions],
-            'mentions.*'     => ['integer', 'distinct', 'exists:utilisateurs,id_utilisateur'],
+            'contenu' => ['required', 'string', 'max:2000'],
+            'mentions' => ['sometimes', 'array', 'max:'.$maxMentions],
+            'mentions.*' => ['integer', 'distinct', 'exists:utilisateurs,id_utilisateur'],
             'notifier_email' => ['sometimes', 'boolean'],
-            'etiquette'      => ['nullable', 'in:information,a_verifier,urgent'],
+            'etiquette' => ['nullable', 'in:information,a_verifier,urgent'],
         ]);
 
         $note = DB::transaction(fn () => NoteInterneService::creer(
@@ -309,7 +309,7 @@ class DoleanceActionController extends Controller
 
         return response()->json([
             'message' => 'Note ajoutée.',
-            'note'    => $note->versApi($utilisateur),
+            'note' => $note->versApi($utilisateur),
         ], 201);
     }
 
@@ -343,10 +343,10 @@ class DoleanceActionController extends Controller
 
         $maxMentions = (int) config('itassel.notes.max_mentions', 5);
         $data = $request->validate([
-            'contenu'    => ['required', 'string', 'max:2000'],
-            'mentions'   => ['sometimes', 'array', 'max:'.$maxMentions],
+            'contenu' => ['required', 'string', 'max:2000'],
+            'mentions' => ['sometimes', 'array', 'max:'.$maxMentions],
             'mentions.*' => ['integer', 'distinct', 'exists:utilisateurs,id_utilisateur'],
-            'etiquette'  => ['nullable', 'in:information,a_verifier,urgent'],
+            'etiquette' => ['nullable', 'in:information,a_verifier,urgent'],
         ]);
 
         $note = DB::transaction(fn () => NoteInterneService::modifier(
@@ -362,7 +362,7 @@ class DoleanceActionController extends Controller
 
         return response()->json([
             'message' => 'Note mise à jour.',
-            'note'    => $note->versApi($utilisateur),
+            'note' => $note->versApi($utilisateur),
         ]);
     }
 
@@ -386,7 +386,7 @@ class DoleanceActionController extends Controller
 
         return response()->json([
             'message' => $note->epinglee ? 'Note épinglée.' : 'Note désépinglée.',
-            'note'    => $note->versApi($utilisateur),
+            'note' => $note->versApi($utilisateur),
         ]);
     }
 
@@ -403,7 +403,7 @@ class DoleanceActionController extends Controller
         }
 
         $data = $request->validate([
-            'question'          => ['required', 'string', 'max:1000'],
+            'question' => ['required', 'string', 'max:1000'],
             'description_piece' => ['nullable', 'string', 'max:200'],
         ]);
 
@@ -431,7 +431,7 @@ class DoleanceActionController extends Controller
         JournalService::action($request, $utilisateur, 'complement_demande', $doleance->reference, $doleance);
 
         return response()->json([
-            'message'    => 'Demande de complément envoyée au demandeur.',
+            'message' => 'Demande de complément envoyée au demandeur.',
             'complement' => $complement,
         ], 201);
     }
@@ -456,7 +456,7 @@ class DoleanceActionController extends Controller
                 ?? $this->introuvable();
         }
 
-        $data = $request->validate((new AnnulerComplementRequest())->rules());
+        $data = $request->validate((new AnnulerComplementRequest)->rules());
 
         try {
             $complement = ComplementService::annuler($complement, $utilisateur, $data['motif']);
@@ -468,8 +468,8 @@ class DoleanceActionController extends Controller
         $complement->offsetUnset('email_envoye');
 
         return response()->json([
-            'message'      => 'Demande de complément annulée.',
-            'complement'   => $this->complementPourApi($complement),
+            'message' => 'Demande de complément annulée.',
+            'complement' => $this->complementPourApi($complement),
             'email_envoye' => $emailEnvoye,
         ]);
     }
@@ -482,7 +482,7 @@ class DoleanceActionController extends Controller
             return Acces::reponseDossierReaffecte($utilisateur, $reference) ?? $this->introuvable();
         }
 
-        $data = $request->validate((new ReclasserDoleanceRequest())->rules());
+        $data = $request->validate((new ReclasserDoleanceRequest)->rules());
 
         $cible = Statut::findOrFail($data['id_statut']);
 
@@ -503,7 +503,7 @@ class DoleanceActionController extends Controller
         );
 
         return response()->json([
-            'message'  => 'Dossier reclassé.',
+            'message' => 'Dossier reclassé.',
             'doleance' => $doleance,
         ]);
     }
@@ -555,8 +555,8 @@ class DoleanceActionController extends Controller
         );
 
         return response()->json([
-            'message'      => 'Statut mis à jour.',
-            'statut'       => $nouveau->versApi(),
+            'message' => 'Statut mis à jour.',
+            'statut' => $nouveau->versApi(),
             'email_envoye' => $emailEnvoye,
         ]);
     }
@@ -594,8 +594,8 @@ class DoleanceActionController extends Controller
         );
 
         return response()->json([
-            'message'      => 'Statut mis à jour.',
-            'statut'       => $nouveau->versApi(),
+            'message' => 'Statut mis à jour.',
+            'statut' => $nouveau->versApi(),
             'email_envoye' => (bool) $complement->email_envoye,
         ]);
     }
@@ -622,7 +622,7 @@ class DoleanceActionController extends Controller
         if ($complement->etat !== 'recu') {
             return response()->json([
                 'message' => 'Ce complément n\'est pas en attente d\'examen.',
-                'code'    => 'etat_invalide',
+                'code' => 'etat_invalide',
             ], 409);
         }
 
@@ -630,19 +630,19 @@ class DoleanceActionController extends Controller
             $complement->update(['etat' => 'examine']);
 
             Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'complement_examine',
-                'detail'            => 'Complément examiné.',
+                'date_evenement' => now(),
+                'type_evenement' => 'complement_examine',
+                'detail' => 'Complément examiné.',
                 'visible_demandeur' => false,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_utilisateur'    => $request->user()->id_utilisateur,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $request->user()->id_utilisateur,
             ]);
         });
 
         JournalService::action($request, $request->user(), 'complement_examine', $doleance->reference, $doleance);
 
         return response()->json([
-            'message'    => 'Complément marqué comme examiné.',
+            'message' => 'Complément marqué comme examiné.',
             'complement' => $complement->fresh()->load([
                 'auteur:id_utilisateur,nom,prenom',
                 'annulePar:id_utilisateur,nom,prenom',
@@ -703,7 +703,7 @@ class DoleanceActionController extends Controller
     {
         return response()->json([
             'message' => $message,
-            'errors'  => [$champ => [$message]],
+            'errors' => [$champ => [$message]],
         ], 422);
     }
 }

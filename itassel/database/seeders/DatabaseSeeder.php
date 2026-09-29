@@ -17,11 +17,11 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $messagesCitoyen = [
-            'resolue'          => 'Une réponse est disponible.',
+            'resolue' => 'Une réponse est disponible.',
             'reponse_apportee' => 'Une réponse à votre demande est disponible.',
-            'hors_competence'  => 'Votre demande relève d\'un autre organisme.',
-            'non_retenue'      => 'Votre réclamation n\'a pas été retenue après examen.',
-            'double'           => 'Votre demande a déjà été enregistrée.',
+            'hors_competence' => 'Votre demande relève d\'un autre organisme.',
+            'non_retenue' => 'Votre réclamation n\'a pas été retenue après examen.',
+            'double' => 'Votre demande a déjà été enregistrée.',
         ];
 
         $statuts = [
@@ -40,11 +40,11 @@ class DatabaseSeeder extends Seeder
             Statut::updateOrCreate(
                 ['code' => $code],
                 [
-                    'libelle'          => $libelle,
-                    'couleur'          => $couleur,
-                    'selectionnable'   => $selectionnable,
-                    'ordre'            => $ordre,
-                    'message_citoyen'  => $messagesCitoyen[$code] ?? null,
+                    'libelle' => $libelle,
+                    'couleur' => $couleur,
+                    'selectionnable' => $selectionnable,
+                    'ordre' => $ordre,
+                    'message_citoyen' => $messagesCitoyen[$code] ?? null,
                 ]
             );
         }
@@ -74,7 +74,7 @@ class DatabaseSeeder extends Seeder
                 ['libelle' => $libelle],
                 [
                     'selectionnable' => true,
-                    'ordre'          => ($index + 1) * 10,
+                    'ordre' => ($index + 1) * 10,
                 ]
             );
         }

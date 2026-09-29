@@ -3,9 +3,13 @@
 namespace App\Services;
 
 use App\Exceptions\ConflitMetier;
+use App\Models\Complement;
 use App\Models\Doleance;
 use App\Models\Historique;
 use App\Models\JetonMotDePasse;
+use App\Models\NoteInterne;
+use App\Models\Reaffectation;
+use App\Models\Reponse;
 use App\Models\Service;
 use App\Models\Statut;
 use App\Models\Utilisateur;
@@ -28,9 +32,9 @@ class UtilisateurService
         }
 
         $cible->fill([
-            'nom'    => $donnees['nom'] ?? $cible->nom,
+            'nom' => $donnees['nom'] ?? $cible->nom,
             'prenom' => $donnees['prenom'] ?? $cible->prenom,
-            'email'  => $donnees['email'] ?? $cible->email,
+            'email' => $donnees['email'] ?? $cible->email,
         ]);
 
         if (array_key_exists('id_service', $donnees) && $cible->role === 'admin_service') {
@@ -88,14 +92,14 @@ class UtilisateurService
                 $doleance->update(['id_responsable' => $remplacant?->id_utilisateur]);
 
                 Historique::create([
-                    'date_evenement'    => now(),
-                    'type_evenement'    => 'changement_responsable',
-                    'detail'            => $remplacant
+                    'date_evenement' => now(),
+                    'type_evenement' => 'changement_responsable',
+                    'detail' => $remplacant
                         ? "Responsable : {$cible->nomComplet()} → {$remplacant->nomComplet()}"
                         : "Responsable retiré : {$cible->nomComplet()}",
                     'visible_demandeur' => false,
-                    'id_doleance'       => $doleance->id_doleance,
-                    'id_utilisateur'    => $acteur->id_utilisateur,
+                    'id_doleance' => $doleance->id_doleance,
+                    'id_utilisateur' => $acteur->id_utilisateur,
                 ]);
             }
 
@@ -113,7 +117,7 @@ class UtilisateurService
         JournalService::action($request, $acteur, 'desactivation_utilisateur', $cible->nomComplet(), $cible);
 
         return [
-            'utilisateur'         => $cible->fresh('service'),
+            'utilisateur' => $cible->fresh('service'),
             'dossiers_transferes' => $dossiersTransferes,
         ];
     }
@@ -163,29 +167,29 @@ class UtilisateurService
         return [
             'utilisateur' => [
                 'id_utilisateur' => $cible->id_utilisateur,
-                'nom'            => $cible->nom,
-                'prenom'         => $cible->prenom,
-                'role'           => $cible->role,
-                'libelle_role'   => $cible->libelleRole(),
-                'actif'          => $cible->actif,
-                'service'        => $cible->service
+                'nom' => $cible->nom,
+                'prenom' => $cible->prenom,
+                'role' => $cible->role,
+                'libelle_role' => $cible->libelleRole(),
+                'actif' => $cible->actif,
+                'service' => $cible->service
                     ? [
-                        'id_service'  => $cible->service->id_service,
+                        'id_service' => $cible->service->id_service,
                         'nom_service' => $cible->service->nom_service,
                     ]
                     : null,
             ],
             'est_responsable_service' => $estResponsable,
-            'dossiers_service'        => $estResponsable
+            'dossiers_service' => $estResponsable
                 ? static::compterOuvertes(Doleance::where('id_service', $serviceGere->id_service))
                 : null,
-            'dossiers_suivis'         => static::compterOuvertes(
+            'dossiers_suivis' => static::compterOuvertes(
                 Doleance::where('id_responsable', $cible->id_utilisateur)
             ),
-            'remplacants_possibles'   => static::remplacantsPossibles($cible),
-            'a_historique'            => static::aHistorique($cible),
-            'suppression_possible'    => $raison === null,
-            'raison_blocage'          => $raison,
+            'remplacants_possibles' => static::remplacantsPossibles($cible),
+            'a_historique' => static::aHistorique($cible),
+            'suppression_possible' => $raison === null,
+            'raison_blocage' => $raison,
         ];
     }
 
@@ -253,10 +257,10 @@ class UtilisateurService
         $parCode = $dossiers->groupBy(fn (Doleance $d) => $d->statut?->code);
 
         return [
-            'total'                 => $dossiers->count(),
-            'nouvelles'             => $parCode->get(Statut::NOUVELLE, collect())->count(),
-            'en_cours'              => $parCode->get(Statut::EN_COURS, collect())->count(),
-            'information_demandee'  => $parCode->get(Statut::INFORMATION_DEMANDEE, collect())->count(),
+            'total' => $dossiers->count(),
+            'nouvelles' => $parCode->get(Statut::NOUVELLE, collect())->count(),
+            'en_cours' => $parCode->get(Statut::EN_COURS, collect())->count(),
+            'information_demandee' => $parCode->get(Statut::INFORMATION_DEMANDEE, collect())->count(),
         ];
     }
 
@@ -276,9 +280,9 @@ class UtilisateurService
             ->get()
             ->map(fn (Utilisateur $u) => [
                 'id_utilisateur' => $u->id_utilisateur,
-                'nom'            => $u->nom,
-                'prenom'         => $u->prenom,
-                'libelle_role'   => $u->libelleRole(),
+                'nom' => $u->nom,
+                'prenom' => $u->prenom,
+                'libelle_role' => $u->libelleRole(),
             ])
             ->values()
             ->all();
@@ -289,9 +293,9 @@ class UtilisateurService
         $id = $cible->id_utilisateur;
 
         return Historique::where('id_utilisateur', $id)->exists()
-            || \App\Models\Reponse::where('id_auteur', $id)->exists()
-            || \App\Models\NoteInterne::where('id_auteur', $id)->exists()
-            || \App\Models\Complement::where(fn ($q) => $q->where('id_auteur', $id)->orWhere('id_annule_par', $id))->exists()
-            || \App\Models\Reaffectation::where(fn ($q) => $q->where('id_demandeur', $id)->orWhere('id_decideur', $id))->exists();
+            || Reponse::where('id_auteur', $id)->exists()
+            || NoteInterne::where('id_auteur', $id)->exists()
+            || Complement::where(fn ($q) => $q->where('id_auteur', $id)->orWhere('id_annule_par', $id))->exists()
+            || Reaffectation::where(fn ($q) => $q->where('id_demandeur', $id)->orWhere('id_decideur', $id))->exists();
     }
 }

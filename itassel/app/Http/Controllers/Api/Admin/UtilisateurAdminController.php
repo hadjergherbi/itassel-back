@@ -17,11 +17,11 @@ class UtilisateurAdminController extends Controller
     public function index(Request $request)
     {
         $data = $request->validate([
-            'role'   => ['nullable', 'string', 'in:super_admin,admin_service'],
-            'service'=> ['nullable', 'integer'],
-            'actif'  => ['nullable', 'boolean'],
-            'etat'   => ['nullable', 'string', 'in:invitation_en_attente,invitation_expiree,actif,desactive'],
-            'q'      => ['nullable', 'string', 'max:100'],
+            'role' => ['nullable', 'string', 'in:super_admin,admin_service'],
+            'service' => ['nullable', 'integer'],
+            'actif' => ['nullable', 'boolean'],
+            'etat' => ['nullable', 'string', 'in:invitation_en_attente,invitation_expiree,actif,desactive'],
+            'q' => ['nullable', 'string', 'max:100'],
         ]);
 
         $query = Utilisateur::with('service')->orderBy('nom');
@@ -39,8 +39,8 @@ class UtilisateurAdminController extends Controller
             $texte = '%'.addcslashes($data['q'], '%_').'%';
             $query->where(function ($w) use ($texte) {
                 $w->where('nom', 'like', $texte)
-                  ->orWhere('prenom', 'like', $texte)
-                  ->orWhere('email', 'like', $texte);
+                    ->orWhere('prenom', 'like', $texte)
+                    ->orWhere('email', 'like', $texte);
             });
         }
 
@@ -56,12 +56,12 @@ class UtilisateurAdminController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate((new CreerUtilisateurRequest())->rules());
+        $data = $request->validate((new CreerUtilisateurRequest)->rules());
 
         $utilisateur = CompteService::creer($data, $request->user(), $request);
 
         return response()->json([
-            'message'     => 'Utilisateur créé. Une invitation a été envoyée.',
+            'message' => 'Utilisateur créé. Une invitation a été envoyée.',
             'utilisateur' => $this->detail($utilisateur),
         ], 201);
     }
@@ -74,9 +74,9 @@ class UtilisateurAdminController extends Controller
     public function update(Request $request, Utilisateur $utilisateur)
     {
         $data = $request->validate([
-            'nom'        => ['sometimes', 'string', 'max:80'],
-            'prenom'     => ['sometimes', 'string', 'max:80'],
-            'email'      => ['sometimes', 'email', 'max:120', Rule::unique('utilisateurs', 'email')->ignore($utilisateur->id_utilisateur, 'id_utilisateur')],
+            'nom' => ['sometimes', 'string', 'max:80'],
+            'prenom' => ['sometimes', 'string', 'max:80'],
+            'email' => ['sometimes', 'email', 'max:120', Rule::unique('utilisateurs', 'email')->ignore($utilisateur->id_utilisateur, 'id_utilisateur')],
             'id_service' => ['nullable', ...Service::regleIdAssignable()],
         ]);
 
@@ -113,8 +113,8 @@ class UtilisateurAdminController extends Controller
         }
 
         return response()->json([
-            'message'             => 'Compte désactivé.',
-            'utilisateur'         => $this->detail($resultat['utilisateur']),
+            'message' => 'Compte désactivé.',
+            'utilisateur' => $this->detail($resultat['utilisateur']),
             'dossiers_transferes' => $resultat['dossiers_transferes'],
         ]);
     }
@@ -156,20 +156,20 @@ class UtilisateurAdminController extends Controller
     private function ligne(Utilisateur $u): array
     {
         return [
-            'id'                  => $u->id_utilisateur,
-            'id_utilisateur'      => $u->id_utilisateur,
-            'nom'                 => $u->nom,
-            'prenom'              => $u->prenom,
-            'email'               => $u->email,
-            'role'                => $u->role,
-            'libelle_role'        => $u->libelleRole(),
-            'service'             => $u->service
+            'id' => $u->id_utilisateur,
+            'id_utilisateur' => $u->id_utilisateur,
+            'nom' => $u->nom,
+            'prenom' => $u->prenom,
+            'email' => $u->email,
+            'role' => $u->role,
+            'libelle_role' => $u->libelleRole(),
+            'service' => $u->service
                 ? ['id_service' => $u->service->id_service, 'nom_service' => $u->service->nom_service]
                 : 'Tous les services',
-            'actif'               => $u->actif,
-            'etat_compte'         => $u->etatCompte(),
-            'derniere_connexion'  => $u->derniere_connexion,
-            'est_responsable'     => Service::where('id_responsable', $u->id_utilisateur)->exists(),
+            'actif' => $u->actif,
+            'etat_compte' => $u->etatCompte(),
+            'derniere_connexion' => $u->derniere_connexion,
+            'est_responsable' => Service::where('id_responsable', $u->id_utilisateur)->exists(),
         ];
     }
 

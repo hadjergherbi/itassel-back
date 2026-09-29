@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class ExportPdfGraphiquesTest extends TestCase
 {
-    use RefreshDatabase, ItasselHelpers;
+    use ItasselHelpers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -33,7 +33,7 @@ class ExportPdfGraphiquesTest extends TestCase
         $service = Service::where('nom_service', 'Sport')->first();
         $this->doleance([
             'id_service' => $service->id_service,
-            'reference'  => 'ITS-2026-4101',
+            'reference' => 'ITS-2026-4101',
             'date_depot' => '2026-06-15',
         ]);
 
@@ -70,11 +70,11 @@ class ExportPdfGraphiquesTest extends TestCase
         $this->connecter($admin);
 
         Journal::factory()->create([
-            'compte'     => $admin->email,
-            'action'     => 'connexion',
-            'categorie'  => 'connexion',
-            'resultat'   => 'succes',
-            'date_action'=> '2026-06-15 10:00:00',
+            'compte' => $admin->email,
+            'action' => 'connexion',
+            'categorie' => 'connexion',
+            'resultat' => 'succes',
+            'date_action' => '2026-06-15 10:00:00',
         ]);
 
         $pdf = $this->get('/api/admin/journaux/export?format=pdf&date_debut=2026-06-01&date_fin=2026-06-30')
@@ -102,13 +102,13 @@ class ExportPdfGraphiquesTest extends TestCase
         for ($i = 0; $i < 5001; $i++) {
             $lot[] = [
                 'date_action' => $maintenant,
-                'compte'      => 'export@itassel.test',
-                'action'      => 'connexion',
-                'categorie'   => 'connexion',
-                'adresse_ip'  => '127.0.0.1',
-                'resultat'    => 'succes',
-                'created_at'  => $maintenant,
-                'updated_at'  => $maintenant,
+                'compte' => 'export@itassel.test',
+                'action' => 'connexion',
+                'categorie' => 'connexion',
+                'adresse_ip' => '127.0.0.1',
+                'resultat' => 'succes',
+                'created_at' => $maintenant,
+                'updated_at' => $maintenant,
             ];
             if (count($lot) === 500) {
                 DB::table('journaux')->insert($lot);
@@ -134,7 +134,7 @@ class ExportPdfGraphiquesTest extends TestCase
 
         $this->doleance([
             'id_service' => $jeunesse->id_service,
-            'reference'  => 'ITS-2026-4202',
+            'reference' => 'ITS-2026-4202',
             'date_depot' => '2026-06-15',
         ]);
 
@@ -147,7 +147,7 @@ class ExportPdfGraphiquesTest extends TestCase
 
         $this->doleance([
             'id_service' => $sport->id_service,
-            'reference'  => 'ITS-2026-4201',
+            'reference' => 'ITS-2026-4201',
             'date_depot' => '2026-06-15',
         ]);
 

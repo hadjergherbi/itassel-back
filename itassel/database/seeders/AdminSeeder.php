@@ -19,11 +19,11 @@ class AdminSeeder extends Seeder
         $hash = Hash::make($this->motDePasseDemo());
 
         $this->enregistrer([
-            'email'        => 'demo.admin@itassel.dz',
-            'nom'          => 'Admin',
-            'prenom'       => 'Démo',
-            'role'         => 'super_admin',
-            'id_service'   => null,
+            'email' => 'demo.admin@itassel.dz',
+            'nom' => 'Admin',
+            'prenom' => 'Démo',
+            'role' => 'super_admin',
+            'id_service' => null,
             'mot_de_passe' => $hash,
         ]);
 
@@ -35,11 +35,11 @@ class AdminSeeder extends Seeder
         }
 
         $admin = $this->enregistrer([
-            'email'        => 'demo.sport@itassel.dz',
-            'nom'          => 'Sport',
-            'prenom'       => 'Démo',
-            'role'         => 'admin_service',
-            'id_service'   => $service->id_service,
+            'email' => 'demo.sport@itassel.dz',
+            'nom' => 'Sport',
+            'prenom' => 'Démo',
+            'role' => 'admin_service',
+            'id_service' => $service->id_service,
             'mot_de_passe' => $hash,
         ]);
 
@@ -73,12 +73,12 @@ class AdminSeeder extends Seeder
         }
 
         $utilisateur->forceFill([
-            'nom'                    => $donnees['nom'],
-            'prenom'                 => $donnees['prenom'],
-            'actif'                  => true,
-            'id_service'             => $donnees['id_service'],
-            'role'                   => $donnees['role'],
-            'mot_de_passe'           => $donnees['mot_de_passe'],
+            'nom' => $donnees['nom'],
+            'prenom' => $donnees['prenom'],
+            'actif' => true,
+            'id_service' => $donnees['id_service'],
+            'role' => $donnees['role'],
+            'mot_de_passe' => $donnees['mot_de_passe'],
             'mot_de_passe_defini_le' => $utilisateur->mot_de_passe_defini_le ?? now(),
         ])->save();
 

@@ -21,8 +21,8 @@ class MotDePasseController extends Controller
     public function definir(Request $request)
     {
         $data = $request->validate([
-            'jeton'                     => ['required', 'string'],
-            'mot_de_passe'              => ['required', 'confirmed', Password::min(10)->letters()->mixedCase()->numbers()],
+            'jeton' => ['required', 'string'],
+            'mot_de_passe' => ['required', 'confirmed', Password::min(10)->letters()->mixedCase()->numbers()],
             'mot_de_passe_confirmation' => ['required', 'string'],
         ]);
 

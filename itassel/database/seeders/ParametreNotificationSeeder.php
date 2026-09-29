@@ -18,13 +18,13 @@ class ParametreNotificationSeeder extends Seeder
         foreach ($lignes as $ligne) {
             ParametreNotification::updateOrCreate(
                 [
-                    'evenement'    => $ligne['evenement'],
+                    'evenement' => $ligne['evenement'],
                     'destinataire' => $ligne['destinataire'],
                 ],
                 [
                     'canal_email' => $ligne['canal_email'],
-                    'canal_app'   => $ligne['canal_app'],
-                    'modifiable'  => $ligne['modifiable'],
+                    'canal_app' => $ligne['canal_app'],
+                    'modifiable' => $ligne['modifiable'],
                 ]
             );
         }

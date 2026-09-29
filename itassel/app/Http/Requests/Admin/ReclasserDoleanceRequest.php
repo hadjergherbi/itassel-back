@@ -15,7 +15,7 @@ class ReclasserDoleanceRequest extends FormRequest
     {
         return [
             'id_statut' => ['required', 'integer', 'exists:statuts,id_statut'],
-            'motif'     => ['required', 'string', 'max:2000'],
+            'motif' => ['required', 'string', 'max:2000'],
         ];
     }
 }

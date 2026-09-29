@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Mail\AccuseComplementMail;
 use App\Mail\ChangementStatutMail;
 use App\Mail\ComplementAnnuleMail;
 use App\Mail\ConfirmationDepotMail;
@@ -37,6 +38,7 @@ class NotificationDispatcher
             foreach ($parametres as $parametre) {
                 if ($parametre->destinataire === 'demandeur') {
                     $emailDemandeur = static::envoyerCitoyen($evenement, $doleance, $parametre, $contexte, $idEvenement, $options);
+
                     continue;
                 }
 
@@ -66,11 +68,11 @@ class NotificationDispatcher
 
             foreach ($internes as $ligne) {
                 $virtuel = new ParametreNotification([
-                    'evenement'    => $evenement,
+                    'evenement' => $evenement,
                     'destinataire' => $ligne['destinataire'],
-                    'canal_app'    => $ligne['canal_app'],
-                    'canal_email'  => $ligne['canal_email'],
-                    'modifiable'   => true,
+                    'canal_app' => $ligne['canal_app'],
+                    'canal_email' => $ligne['canal_email'],
+                    'modifiable' => true,
                 ]);
                 $envoye = static::notifierInterne($evenement, $doleance, $ligne['utilisateur'], $virtuel, $contexte, $idEvenement, $options);
                 if ($ligne['destinataire'] === 'responsable') {
@@ -82,8 +84,8 @@ class NotificationDispatcher
         }
 
         return [
-            'email_demandeur'    => $emailDemandeur,
-            'email_responsable'  => $emailResponsable,
+            'email_demandeur' => $emailDemandeur,
+            'email_responsable' => $emailResponsable,
         ];
     }
 
@@ -109,13 +111,13 @@ class NotificationDispatcher
         }
 
         $type = match ($evenement) {
-            'doleance_deposee'   => 'depot',
-            'changement_statut'  => 'changement_statut',
+            'doleance_deposee' => 'depot',
+            'changement_statut' => 'changement_statut',
             'complement_demande' => 'complement_demande',
-            'complement_recu'    => 'complement_recu',
-            'complement_annule'  => 'complement_annule',
-            'reponse_publiee'    => 'reponse',
-            default              => $evenement,
+            'complement_recu' => 'complement_recu',
+            'complement_annule' => 'complement_annule',
+            'reponse_publiee' => 'reponse',
+            default => $evenement,
         };
 
         return NotificationService::envoyer($doleance, $type, $mail, $idEvenement);
@@ -136,10 +138,10 @@ class NotificationDispatcher
         if ($parametre->canal_app) {
             NotificationApp::create([
                 'id_utilisateur' => $destinataire->id_utilisateur,
-                'evenement'      => $evenement,
-                'titre'          => mb_substr($titre, 0, 150),
-                'message'        => $texte,
-                'id_doleance'    => $doleance->id_doleance,
+                'evenement' => $evenement,
+                'titre' => mb_substr($titre, 0, 150),
+                'message' => $texte,
+                'id_doleance' => $doleance->id_doleance,
             ]);
         }
 
@@ -197,7 +199,7 @@ class NotificationDispatcher
             'complement_demande' => isset($contexte['complement'])
                 ? new DemandeComplementMail($doleance, $contexte['complement'])
                 : null,
-            'complement_recu' => new \App\Mail\AccuseComplementMail($doleance),
+            'complement_recu' => new AccuseComplementMail($doleance),
             'complement_annule' => new ComplementAnnuleMail($doleance),
             'reponse_publiee' => isset($contexte['reponse'])
                 ? new ReponseServiceMail($doleance, $contexte['reponse'])

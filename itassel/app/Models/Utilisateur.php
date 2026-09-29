@@ -16,6 +16,7 @@ class Utilisateur extends Authenticatable
     public const DELETED_AT = 'supprime_le';
 
     protected $table = 'utilisateurs';
+
     protected $primaryKey = 'id_utilisateur';
 
     protected $fillable = [
@@ -27,12 +28,12 @@ class Utilisateur extends Authenticatable
     protected $hidden = ['mot_de_passe', 'remember_token'];
 
     protected $casts = [
-        'actif'                   => 'boolean',
-        'derniere_connexion'      => 'datetime',
-        'connexion_precedente'    => 'datetime',
-        'mot_de_passe_defini_le'  => 'datetime',
-        'invitation_envoyee_le'   => 'datetime',
-        'supprime_le'             => 'datetime',
+        'actif' => 'boolean',
+        'derniere_connexion' => 'datetime',
+        'connexion_precedente' => 'datetime',
+        'mot_de_passe_defini_le' => 'datetime',
+        'invitation_envoyee_le' => 'datetime',
+        'supprime_le' => 'datetime',
     ];
 
     public function getAuthPassword()

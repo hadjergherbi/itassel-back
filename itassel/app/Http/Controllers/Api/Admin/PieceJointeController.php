@@ -29,9 +29,9 @@ class PieceJointeController extends Controller
         $nom = $this->nomFichierAssaini((string) $piece->nom_fichier);
 
         return Storage::disk('local')->download($piece->chemin, $nom, [
-            'Content-Type'              => $this->typeMime($piece->type),
-            'Content-Disposition'       => 'attachment; filename="'.$nom.'"',
-            'X-Content-Type-Options'    => 'nosniff',
+            'Content-Type' => $this->typeMime($piece->type),
+            'Content-Disposition' => 'attachment; filename="'.$nom.'"',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -59,14 +59,14 @@ class PieceJointeController extends Controller
         $ascii = $this->nomFichierAscii($nom);
 
         return Storage::disk('local')->response($piece->chemin, $nom, [
-            'Content-Type'           => $mime,
-            'Content-Disposition'    => HeaderUtils::makeDisposition(
+            'Content-Type' => $mime,
+            'Content-Disposition' => HeaderUtils::makeDisposition(
                 HeaderUtils::DISPOSITION_INLINE,
                 $nom,
                 $ascii
             ),
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control'          => 'private, no-store',
+            'Cache-Control' => 'private, no-store',
         ], 'inline');
     }
 
@@ -134,10 +134,10 @@ class PieceJointeController extends Controller
     private function typeMime(?string $type): string
     {
         return match (strtolower((string) $type)) {
-            'pdf'         => 'application/pdf',
+            'pdf' => 'application/pdf',
             'jpg', 'jpeg' => 'image/jpeg',
-            'png'         => 'image/png',
-            default       => 'application/octet-stream',
+            'png' => 'image/png',
+            default => 'application/octet-stream',
         };
     }
 

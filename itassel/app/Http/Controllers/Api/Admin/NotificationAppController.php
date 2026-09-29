@@ -33,13 +33,13 @@ class NotificationAppController extends Controller
             $query->paginate($parPage)->through(function (NotificationApp $n) {
                 $ligne = [
                     'id_notification_app' => $n->id_notification_app,
-                    'evenement'           => $n->evenement,
-                    'titre'               => $n->titre,
-                    'message'             => $n->message,
-                    'lue_le'              => $n->lue_le,
-                    'created_at'          => $n->created_at,
-                    'id_note'             => $n->id_note,
-                    'doleance'            => $n->doleance
+                    'evenement' => $n->evenement,
+                    'titre' => $n->titre,
+                    'message' => $n->message,
+                    'lue_le' => $n->lue_le,
+                    'created_at' => $n->created_at,
+                    'id_note' => $n->id_note,
+                    'doleance' => $n->doleance
                         ? ['reference' => $n->doleance->reference]
                         : null,
                 ];
@@ -48,7 +48,7 @@ class NotificationAppController extends Controller
                     $ligne['auteur'] = $n->note?->auteur
                         ? [
                             'prenom' => $n->note->auteur->prenom,
-                            'nom'    => $n->note->auteur->nom,
+                            'nom' => $n->note->auteur->nom,
                         ]
                         : null;
                 }

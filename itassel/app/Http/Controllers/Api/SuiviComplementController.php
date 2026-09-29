@@ -23,7 +23,7 @@ class SuiviComplementController extends Controller
     public function repondre(Request $request)
     {
         $data = $request->validate([
-            'message'      => ['required', 'string', 'max:2000'],
+            'message' => ['required', 'string', 'max:2000'],
             'piece_jointe' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ]);
 
@@ -71,9 +71,9 @@ class SuiviComplementController extends Controller
 
         $evenement = DB::transaction(function () use ($complement, $doleance, $data, $fichier) {
             $complement->update([
-                'reponse'      => $data['message'],
+                'reponse' => $data['message'],
                 'date_reponse' => now(),
-                'etat'         => 'recu',
+                'etat' => 'recu',
             ]);
 
             if ($fichier instanceof UploadedFile) {
@@ -91,13 +91,13 @@ class SuiviComplementController extends Controller
             $doleance->update(['id_statut' => $statutEnCours->id_statut]);
 
             return Historique::create([
-                'date_evenement'    => now(),
-                'type_evenement'    => 'complement_recu',
-                'detail'            => 'Réponse du demandeur au complément demandé.',
+                'date_evenement' => now(),
+                'type_evenement' => 'complement_recu',
+                'detail' => 'Réponse du demandeur au complément demandé.',
                 'visible_demandeur' => true,
-                'id_doleance'       => $doleance->id_doleance,
-                'id_statut_avant'   => $statutAvant,
-                'id_statut_apres'   => $statutEnCours?->id_statut,
+                'id_doleance' => $doleance->id_doleance,
+                'id_statut_avant' => $statutAvant,
+                'id_statut_apres' => $statutEnCours?->id_statut,
             ]);
         });
 

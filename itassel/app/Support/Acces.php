@@ -57,10 +57,10 @@ class Acces
         }
 
         return response()->json([
-            'code'      => 'dossier_reaffecte',
-            'message'   => 'Ce dossier a été réaffecté et n\'est plus visible depuis votre service.',
+            'code' => 'dossier_reaffecte',
+            'message' => 'Ce dossier a été réaffecté et n\'est plus visible depuis votre service.',
             'reference' => $doleance->reference,
-            'service'   => $doleance->service?->nom_service,
+            'service' => $doleance->service?->nom_service,
         ], 403);
     }
 }
