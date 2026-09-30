@@ -63,6 +63,19 @@ return [
         'cloturee' => null,
     ],
 
+    'messages_usages' => [
+        'accuse_reception' => ['libelle' => 'Accusé de réception', 'statuts' => ['nouvelle', 'en_cours']],
+        'prise_en_charge' => ['libelle' => 'Prise en charge / en cours', 'statuts' => ['nouvelle', 'en_cours']],
+        'complement' => ['libelle' => 'Demande de complément', 'statuts' => ['information_demandee']],
+        'reponse' => ['libelle' => 'Réponse finale (résolue)', 'statuts' => ['resolue', 'reponse_apportee']],
+        'non_retenue' => ['libelle' => 'Non retenue', 'statuts' => ['non_retenue']],
+        'hors_competence' => ['libelle' => 'Hors compétence', 'statuts' => ['hors_competence']],
+        'double' => ['libelle' => 'Doublon', 'statuts' => ['double']],
+        'relance' => ['libelle' => 'Relance / délai de traitement', 'statuts' => ['nouvelle', 'en_cours']],
+        'cloture' => ['libelle' => 'Clôture', 'statuts' => ['resolue']],
+        'autre' => ['libelle' => 'Autre', 'statuts' => []], // vide = tous les statuts
+    ],
+
     'journal' => [
         'categories' => ['connexion', 'doleance', 'affectation', 'utilisateur', 'parametre', 'export'],
         'categories_libelles' => [

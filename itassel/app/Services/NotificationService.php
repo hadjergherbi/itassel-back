@@ -20,9 +20,10 @@ class NotificationService
         Doleance $doleance,
         string $type,
         Mailable $mail,
-        ?int $idEvenement = null
+        ?int $idEvenement = null,
+        ?string &$messageErreur = null,
     ): bool {
-        return static::envoyerA($doleance->email, $doleance, $type, $mail, $idEvenement);
+        return static::envoyerA($doleance->email, $doleance, $type, $mail, $idEvenement, $messageErreur);
     }
 
     /**
@@ -34,11 +35,15 @@ class NotificationService
         Doleance $doleance,
         string $type,
         Mailable $mail,
-        ?int $idEvenement = null
+        ?int $idEvenement = null,
+        ?string &$messageErreur = null,
     ): bool {
         $destinataire = trim($destinataire);
+        $messageErreur = null;
 
         if ($destinataire === '') {
+            $messageErreur = 'destinataire vide';
+
             return false;
         }
 
@@ -46,7 +51,9 @@ class NotificationService
             Mail::to($destinataire)->send($mail);
             $transmis = true;
         } catch (\Throwable $e) {
+            // Pas d'email complet dans le log (référence seulement).
             Log::error("Échec d'envoi de l'email « {$type} » pour {$doleance->reference} : ".$e->getMessage());
+            $messageErreur = $e->getMessage();
             $transmis = false;
         }
 

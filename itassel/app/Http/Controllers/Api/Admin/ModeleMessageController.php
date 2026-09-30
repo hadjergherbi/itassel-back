@@ -9,17 +9,34 @@ use Illuminate\Http\Request;
 class ModeleMessageController extends Controller
 {
     /**
-     * GET /api/admin/modeles-message?type_usage=reponse
-     * Textes prédéfinis proposés dans le menu « Modèle de réponse ».
+     * GET /api/admin/modeles-message?usage=reponse&statut=en_cours
+     * Textes prédéfinis pour répondre au demandeur ou demander un complément.
+     * Aucune validation stricte sur les filtres : un usage inconnu renvoie [].
      */
     public function index(Request $request)
     {
-        $query = ModeleMessage::orderBy('titre');
+        $query = ModeleMessage::query()->orderBy('titre');
+        ModeleMessage::appliquerFiltres($query, $request);
 
-        if ($request->filled('type_usage')) {
-            $query->where('type_usage', $request->input('type_usage'));
-        }
+        return response()->json(
+            $query->get()->map->versApi()->values()
+        );
+    }
 
-        return response()->json($query->get(['id_modele', 'titre', 'contenu', 'type_usage']));
+    /**
+     * GET /api/admin/messages-predefinis/usages
+     * Catalogue des types d'usage (config), pour les filtres et formulaires.
+     */
+    public function usages()
+    {
+        $liste = collect(config('itassel.messages_usages', []))
+            ->map(fn (array $def, string $code) => [
+                'code' => $code,
+                'libelle' => $def['libelle'],
+                'statuts' => $def['statuts'] ?? [],
+            ])
+            ->values();
+
+        return response()->json($liste);
     }
 }

@@ -133,7 +133,10 @@ Route::prefix('admin')->group(function () {
         Route::post('/notifications/{id}/renvoyer', [NotificationAdminController::class, 'renvoyer'])
             ->middleware('permission:notifications.renvoyer')
             ->whereNumber('id');
-        Route::get('/modeles-message', [ModeleMessageController::class, 'index']);
+        Route::get('/modeles-message', [ModeleMessageController::class, 'index'])
+            ->middleware('permission:doleances.repondre,complements.demander,parametres.gerer');
+        Route::get('/messages-predefinis/usages', [ModeleMessageController::class, 'usages'])
+            ->middleware('permission:doleances.repondre,complements.demander,parametres.gerer');
 
         Route::get('/utilisateurs', [UtilisateurAdminController::class, 'index'])
             ->middleware('permission:utilisateurs.gerer');

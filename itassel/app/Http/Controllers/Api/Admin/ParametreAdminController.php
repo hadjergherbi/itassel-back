@@ -131,40 +131,80 @@ class ParametreAdminController extends Controller
 
     public function modeles(Request $request)
     {
-        $query = ModeleMessage::orderBy('titre');
-        if ($request->filled('type_usage')) {
-            $query->where('type_usage', $request->input('type_usage'));
-        }
+        $query = ModeleMessage::query()->orderBy('titre');
+        ModeleMessage::appliquerFiltres($query, $request);
 
-        return response()->json($query->get(['id_modele', 'titre', 'contenu', 'type_usage']));
+        return response()->json(
+            $query->get()->map->versApi()->values()
+        );
     }
 
     public function creerModele(Request $request)
     {
+        ModeleMessage::preparerUsageRequete($request);
+
+        $codes = array_keys(config('itassel.messages_usages', []));
+
         $data = $request->validate([
             'titre' => ['required', 'string', 'max:120'],
             'contenu' => ['required', 'string', 'max:5000'],
-            'type_usage' => ['required', 'in:reponse,conclusion,complement'],
+            'usage' => ['required', 'string', Rule::in($codes)],
+        ], [
+            'titre.required' => 'Le titre est obligatoire.',
+            'titre.string' => 'Le titre doit être une chaîne de caractères.',
+            'titre.max' => 'Le titre ne peut pas dépasser 120 caractères.',
+            'contenu.required' => 'Le contenu est obligatoire.',
+            'contenu.string' => 'Le contenu doit être une chaîne de caractères.',
+            'contenu.max' => 'Le contenu ne peut pas dépasser 5 000 caractères.',
+            'usage.required' => 'Le type d\'usage est obligatoire.',
+            'usage.string' => 'Le type d\'usage doit être une chaîne de caractères.',
+            'usage.in' => 'Le type d\'usage sélectionné n\'est pas valide.',
         ]);
 
-        $modele = ModeleMessage::create($data);
+        $modele = ModeleMessage::create([
+            'titre' => $data['titre'],
+            'contenu' => $data['contenu'],
+            'type_usage' => $data['usage'],
+        ]);
         JournalService::action($request, $request->user(), 'creation_modele_message', $modele->titre, $modele);
 
-        return response()->json(['message' => 'Modèle créé.', 'modele' => $modele], 201);
+        return response()->json(['message' => 'Modèle créé.', 'modele' => $modele->versApi()], 201);
     }
 
     public function modifierModele(Request $request, ModeleMessage $modele)
     {
+        ModeleMessage::preparerUsageRequete($request);
+
+        $codes = array_keys(config('itassel.messages_usages', []));
+
         $data = $request->validate([
             'titre' => ['sometimes', 'string', 'max:120'],
             'contenu' => ['sometimes', 'string', 'max:5000'],
-            'type_usage' => ['sometimes', 'in:reponse,conclusion,complement'],
+            'usage' => ['sometimes', 'string', Rule::in($codes)],
+        ], [
+            'titre.string' => 'Le titre doit être une chaîne de caractères.',
+            'titre.max' => 'Le titre ne peut pas dépasser 120 caractères.',
+            'contenu.string' => 'Le contenu doit être une chaîne de caractères.',
+            'contenu.max' => 'Le contenu ne peut pas dépasser 5 000 caractères.',
+            'usage.string' => 'Le type d\'usage doit être une chaîne de caractères.',
+            'usage.in' => 'Le type d\'usage sélectionné n\'est pas valide.',
         ]);
 
-        $modele->update($data);
+        $miseAJour = [];
+        if (array_key_exists('titre', $data)) {
+            $miseAJour['titre'] = $data['titre'];
+        }
+        if (array_key_exists('contenu', $data)) {
+            $miseAJour['contenu'] = $data['contenu'];
+        }
+        if (array_key_exists('usage', $data)) {
+            $miseAJour['type_usage'] = $data['usage'];
+        }
+
+        $modele->update($miseAJour);
         JournalService::action($request, $request->user(), 'modification_modele_message', $modele->titre, $modele);
 
-        return response()->json(['message' => 'Modèle mis à jour.', 'modele' => $modele]);
+        return response()->json(['message' => 'Modèle mis à jour.', 'modele' => $modele->fresh()->versApi()]);
     }
 
     public function supprimerModele(Request $request, ModeleMessage $modele)

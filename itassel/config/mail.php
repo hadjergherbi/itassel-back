@@ -7,14 +7,14 @@ return [
     | Default Mailer
     |--------------------------------------------------------------------------
     |
-    | This option controls the default mailer that is used to send all email
-    | messages unless another mailer is explicitly specified when sending
-    | the message. All additional mailers can be configured within the
-    | "mailers" array. Examples of each type of mailer are provided.
+    | Contrôlé par MAIL_MAILER dans .env.
+    | - "log"   : aucun envoi réel (écrit dans storage/logs) — utile hors SMTP.
+    | - "smtp"  : envoi réel ; renseigner HOST, PORT, USERNAME, PASSWORD, FROM.
+    | Ne jamais committer d'identifiants SMTP dans un fichier versionné.
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => env('MAIL_MAILER', 'smtp'),
 
     /*
     |--------------------------------------------------------------------------
@@ -41,8 +41,9 @@ return [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
             'url' => env('MAIL_URL'),
-            'host' => env('MAIL_HOST', '127.0.0.1'),
-            'port' => env('MAIL_PORT', 2525),
+            // Valeurs lues depuis .env — laisser vides dans .env.example.
+            'host' => env('MAIL_HOST'),
+            'port' => env('MAIL_PORT', 587),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,

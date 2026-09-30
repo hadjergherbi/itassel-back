@@ -82,5 +82,6 @@ class DatabaseSeeder extends Seeder
         $this->call(AdminSeeder::class);
         $this->call(RolePermissionSeeder::class);
         $this->call(ParametreNotificationSeeder::class);
+        $this->call(ModeleMessageSeeder::class);
     }
 }

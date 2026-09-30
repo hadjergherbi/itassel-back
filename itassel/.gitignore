@@ -1,6 +1,8 @@
 *.log
 .DS_Store
 .env
+.env.*
+!.env.example
 .env.backup
 .env.production
 .phpactor.json
@@ -20,12 +22,23 @@
 /storage/pail
 /storage/fonts/*.ufm
 /storage/fonts/installed-fonts.json
-/storage/logs/*.log
+/storage/logs
+/storage/logs/*
+!/storage/logs/.gitignore
 /storage/app/private/*
 !/storage/app/private/.gitignore
+/storage/app/public/*
+!/storage/app/public/.gitignore
 /storage/framework/views/*.php
 /vendor
 database/database.sqlite
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# Archives locales (ne pas y inclure .env / storage)
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z

@@ -9,6 +9,7 @@ use App\Models\Doleance;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SuiviController extends Controller
@@ -24,41 +25,59 @@ class SuiviController extends Controller
             'reference' => ['required', 'string', 'max:20'],
         ]);
 
+        $reference = strtoupper(trim($data['reference']));
         $maxDemandes = (int) config('itassel.suivi.max_demandes_code', 3);
         $dureeValidite = (int) config('itassel.suivi.duree_validite_min', 10);
 
-        $doleance = Doleance::where('reference', $data['reference'])->first();
+        $doleance = Doleance::where('reference', $reference)->first();
 
-        if ($doleance) {
-            $cleLimite = "suivi:demandes:{$doleance->id_doleance}";
-            $demandes = Cache::get($cleLimite, 0);
+        if (! $doleance) {
+            $this->journaliserDemandeCodeLocale('reference_inconnue', $reference);
 
-            if ($demandes < $maxDemandes) {
-                $codeEnClair = (string) random_int(100000, 999999);
-
-                CodeVerification::create([
-                    'code_hash' => hash('sha256', $codeEnClair),
-                    'date_creation' => now(),
-                    'date_expiration' => now()->addMinutes($dureeValidite),
-                    'nombre_essais' => 0,
-                    'utilise' => false,
-                    'id_doleance' => $doleance->id_doleance,
-                ]);
-
-                Cache::put($cleLimite, $demandes + 1, now()->addHour());
-
-                NotificationService::envoyer(
-                    $doleance,
-                    'code_verification',
-                    new CodeVerificationMail($codeEnClair, $doleance->reference, $dureeValidite),
-                );
-            }
+            return $this->reponseDemandeCode($dureeValidite);
         }
 
-        return response()->json([
-            'message' => 'Si cette référence existe, un code à usage unique a été envoyé '
-                       ."à l'adresse email du dossier. Il expire dans ".$dureeValidite.' minutes.',
+        $cleLimite = "suivi:demandes:{$doleance->id_doleance}";
+        $demandes = (int) Cache::get($cleLimite, 0);
+
+        if ($demandes >= $maxDemandes) {
+            $this->journaliserDemandeCodeLocale('limite_demandes', $reference, [
+                'demandes' => $demandes,
+                'max' => $maxDemandes,
+            ]);
+
+            return $this->reponseDemandeCode($dureeValidite);
+        }
+
+        $codeEnClair = (string) random_int(100000, 999999);
+
+        CodeVerification::create([
+            'code_hash' => hash('sha256', $codeEnClair),
+            'date_creation' => now(),
+            'date_expiration' => now()->addMinutes($dureeValidite),
+            'nombre_essais' => 0,
+            'utilise' => false,
+            'id_doleance' => $doleance->id_doleance,
         ]);
+
+        Cache::put($cleLimite, $demandes + 1, now()->addHour());
+
+        $erreurEnvoi = null;
+        $transmis = NotificationService::envoyer(
+            $doleance,
+            'code_verification',
+            new CodeVerificationMail($codeEnClair, $doleance->reference, $dureeValidite),
+            null,
+            $erreurEnvoi,
+        );
+
+        if (! $transmis) {
+            $this->journaliserDemandeCodeLocale('echec_envoi', $reference, [
+                'erreur' => $erreurEnvoi ?? 'envoi non transmis',
+            ]);
+        }
+
+        return $this->reponseDemandeCode($dureeValidite);
     }
 
     /**
@@ -140,5 +159,30 @@ class SuiviController extends Controller
         $doleance->complements->each->makeHidden(['motif_annulation']);
 
         return response()->json($doleance);
+    }
+
+    private function reponseDemandeCode(int $dureeValidite)
+    {
+        return response()->json([
+            'message' => 'Si cette référence existe, un code à usage unique a été envoyé '
+                       ."à l'adresse email du dossier. Il expire dans ".$dureeValidite.' minutes.',
+        ]);
+    }
+
+    /**
+     * Diagnostic local uniquement (APP_ENV=local). Jamais de code ni d'email.
+     *
+     * @param  array<string, mixed>  $contexte
+     */
+    private function journaliserDemandeCodeLocale(string $raison, string $reference, array $contexte = []): void
+    {
+        if (! app()->environment('local')) {
+            return;
+        }
+
+        Log::warning('suivi.demander-code: aucun email envoyé', array_merge([
+            'raison' => $raison,
+            'reference' => $reference,
+        ], $contexte));
     }
 }
