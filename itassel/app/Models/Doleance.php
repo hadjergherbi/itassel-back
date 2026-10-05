@@ -13,7 +13,7 @@ class Doleance extends Model
 
     protected $fillable = [
         'reference', 'nom', 'prenom', 'email', 'telephone', 'wilaya',
-        'objet', 'description', 'date_depot',
+        'objet', 'description', 'langue', 'date_depot',
         'id_service', 'id_statut', 'id_nature', 'id_qualite',
         'id_responsable', 'id_doleance_initial', 'organisme_competent',
     ];

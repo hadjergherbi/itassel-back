@@ -63,15 +63,17 @@ class SuiviController extends Controller
         Cache::put($cleLimite, $demandes + 1, now()->addHour());
 
         $erreurEnvoi = null;
-        $transmis = NotificationService::envoyer(
+        // true = mis en file (file « prioritaire »), pas encore transmis.
+        // L'échec SMTP est tracé par le job (etat_envoi = non_transmis).
+        $misEnFile = NotificationService::envoyer(
             $doleance,
             'code_verification',
-            new CodeVerificationMail($codeEnClair, $doleance->reference, $dureeValidite),
+            new CodeVerificationMail($codeEnClair, $doleance->reference, $dureeValidite, $doleance->langue ?? 'fr'),
             null,
             $erreurEnvoi,
         );
 
-        if (! $transmis) {
+        if (! $misEnFile) {
             $this->journaliserDemandeCodeLocale('echec_envoi', $reference, [
                 'erreur' => $erreurEnvoi ?? 'envoi non transmis',
             ]);

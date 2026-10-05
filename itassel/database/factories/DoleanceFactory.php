@@ -25,6 +25,7 @@ class DoleanceFactory extends Factory
             'wilaya' => fake()->city(),
             'objet' => fake()->sentence(4),
             'description' => fake()->paragraph(),
+            'langue' => 'fr',
             'date_depot' => now(),
             'id_service' => Service::factory(),
             'id_statut' => Statut::factory(),

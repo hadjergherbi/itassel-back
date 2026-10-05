@@ -256,6 +256,24 @@ class StatistiqueService
         });
     }
 
+    /**
+     * Agrégats du tableau de bord global, sans les listes nominatives
+     * (dernières doléances, réaffectations de l'agent).
+     *
+     * @return array{tableau: array<string, mixed>, vue_globale: array<string, mixed>, issues: array<string, mixed>}
+     */
+    public static function pourExport(Utilisateur $utilisateur, string $codePeriode = '6m'): array
+    {
+        $tableau = static::tableauDeBord($utilisateur, $codePeriode);
+        unset($tableau['dernieres'], $tableau['mes_reaffectations'], $tableau['mes_reaffectations_en_attente']);
+
+        return [
+            'tableau' => $tableau,
+            'vue_globale' => static::vueGlobale($utilisateur),
+            'issues' => static::issues($utilisateur),
+        ];
+    }
+
     public static function tableauDeBord(Utilisateur $utilisateur, string $codePeriode = '6m'): array
     {
         $periode = Periode::resoudre($codePeriode);

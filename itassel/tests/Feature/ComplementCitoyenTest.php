@@ -160,7 +160,7 @@ class ComplementCitoyenTest extends TestCase
 
     public function test_piece_exigee_absente_renvoie_422(): void
     {
-        [$doleance] = $this->dossierAvecComplementEnAttente(pieceExigee: true);
+        [$doleance, $complement] = $this->dossierAvecComplementEnAttente(pieceExigee: true);
 
         $this->avecSessionSuivi($doleance)
             ->postJson('/api/suivi/repondre-complement', [
@@ -168,6 +168,49 @@ class ComplementCitoyenTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['piece_jointe']);
+
+        $this->assertSame(0, PieceJointe::count());
+        $this->assertSame('en_attente', $complement->fresh()->etat);
+        $this->assertSame(Statut::INFORMATION_DEMANDEE, $doleance->fresh()->statut->code);
+    }
+
+    public function test_fichier_refuse_quand_aucune_piece_n_est_exigee(): void
+    {
+        [$doleance, $complement] = $this->dossierAvecComplementEnAttente(pieceExigee: false);
+
+        $this->avecSessionSuivi($doleance)
+            ->post('/api/suivi/repondre-complement', [
+                'message' => 'Voici un fichier non demandé.',
+                'piece_jointe' => UploadedFile::fake()->create('justificatif.pdf', 100, 'application/pdf'),
+            ], ['Accept' => 'application/json'])
+            ->assertStatus(422)
+            ->assertExactJson([
+                'errors' => [
+                    'piece_jointe' => ['Aucune pièce jointe n\'est demandée pour ce complément.'],
+                ],
+            ]);
+
+        $this->assertSame(0, PieceJointe::count());
+        $this->assertSame('en_attente', $complement->fresh()->etat);
+        $this->assertSame(Statut::INFORMATION_DEMANDEE, $doleance->fresh()->statut->code);
+    }
+
+    public function test_pdf_accepte_quand_la_piece_est_exigee(): void
+    {
+        [$doleance, $complement] = $this->dossierAvecComplementEnAttente(pieceExigee: true);
+
+        $this->avecSessionSuivi($doleance)
+            ->post('/api/suivi/repondre-complement', [
+                'message' => 'Voici le justificatif.',
+                'piece_jointe' => UploadedFile::fake()->create('justificatif.pdf', 100, 'application/pdf'),
+            ], ['Accept' => 'application/json'])
+            ->assertOk();
+
+        $piece = PieceJointe::where('id_complement', $complement->id_complement)->first();
+        $this->assertNotNull($piece);
+        $this->assertSame(1, PieceJointe::count());
+        $this->assertSame('COMPLEMENT', $piece->origine);
+        $this->assertSame($complement->id_complement, $piece->id_complement);
     }
 
     public function test_reponse_avec_image_enregistre_sans_exif(): void
@@ -204,7 +247,7 @@ class ComplementCitoyenTest extends TestCase
 
     public function test_fichier_zip_ou_trop_volumineux_renvoie_422(): void
     {
-        [$doleance] = $this->dossierAvecComplementEnAttente(pieceExigee: false);
+        [$doleance] = $this->dossierAvecComplementEnAttente(pieceExigee: true);
 
         $this->avecSessionSuivi($doleance)
             ->post('/api/suivi/repondre-complement', [

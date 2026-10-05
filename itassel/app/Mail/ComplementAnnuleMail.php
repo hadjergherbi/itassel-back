@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\MailCitoyenLocalise;
 use App\Models\Doleance;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -11,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 class ComplementAnnuleMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use MailCitoyenLocalise, Queueable, SerializesModels;
 
     public string $lienSuivi;
 
@@ -19,12 +20,15 @@ class ComplementAnnuleMail extends Mailable
     {
         $base = rtrim((string) (config('itassel.frontend_url') ?: 'http://localhost:5173'), '/');
         $this->lienSuivi = $base.'/suivre?reference='.urlencode($doleance->reference);
+        $this->appliquerLangue($doleance->langue ?? 'fr');
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "ITASSEL — Votre dossier {$this->doleance->reference} : information plus nécessaire",
+            subject: $this->sujetTraduit('emails.complement_annule.sujet', [
+                'reference' => $this->doleance->reference,
+            ]),
         );
     }
 

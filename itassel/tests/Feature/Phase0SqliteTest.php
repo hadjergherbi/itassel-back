@@ -15,6 +15,12 @@ class Phase0SqliteTest extends TestCase
 
     public function test_les_migrations_s_executent_sur_sqlite(): void
     {
+        // Spécifique au chemin SQLite mémoire (phpunit.xml). La parité MySQL
+        // est la suite complète lancée avec composer test:mysql.
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            $this->markTestSkipped('Ce contrôle vise le schéma SQLite mémoire de phpunit.xml.');
+        }
+
         $this->assertTrue(Schema::hasTable('utilisateurs'));
         $this->assertTrue(Schema::hasColumn('statuts', 'code'));
         $this->assertTrue(Schema::hasColumn('statuts', 'message_citoyen'));

@@ -19,6 +19,7 @@ class SuiviComplementController extends Controller
     /**
      * POST /api/suivi/repondre-complement
      * Le demandeur répond à la demande de complément en attente.
+     * Pièce jointe acceptée uniquement si l'agent l'a exigée.
      */
     public function repondre(Request $request)
     {
@@ -50,6 +51,12 @@ class SuiviComplementController extends Controller
             return response()->json([
                 'message' => 'Ce dossier n\'est plus en attente d\'information. Vous ne pouvez plus répondre à cette demande.',
             ], 409);
+        }
+
+        if (! $complement->piece_exigee && $request->hasFile('piece_jointe')) {
+            return response()->json([
+                'errors' => ['piece_jointe' => ['Aucune pièce jointe n\'est demandée pour ce complément.']],
+            ], 422);
         }
 
         if ($complement->piece_exigee && ! $request->hasFile('piece_jointe')) {

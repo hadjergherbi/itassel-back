@@ -81,6 +81,7 @@ class DoleanceController extends Controller
                 Rule::exists('qualites', 'id_qualite')->where('selectionnable', true),
             ],
             'piece_jointe' => ['prohibited'],
+            'langue' => ['nullable', 'in:fr,en,ar'],
         ]);
 
         [$doleance, $evenement] = DB::transaction(function () use ($data) {
@@ -95,6 +96,7 @@ class DoleanceController extends Controller
                 'wilaya' => $data['wilaya'],
                 'objet' => $data['objet'],
                 'description' => $data['description'],
+                'langue' => $data['langue'] ?? 'fr',
                 'date_depot' => now(),
                 'id_service' => $data['id_service'],
                 'id_statut' => $statutNouvelle->id_statut,

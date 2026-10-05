@@ -29,7 +29,7 @@
       font-style: normal;
     }
 
-    @page { size: A4 landscape; margin: 22mm 16mm 16mm 16mm; }
+    @page { size: A4 {{ $orientation ?? 'landscape' }}; margin: 22mm 16mm 16mm 16mm; }
 
     body {
       font-family: 'IBM Plex Sans', 'DejaVu Sans', sans-serif;

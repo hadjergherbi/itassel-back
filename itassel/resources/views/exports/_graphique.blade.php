@@ -1,4 +1,9 @@
 <h3 class="section">{{ $graphique['titre'] }}</h3>
+@if (! empty($graphique['image']))
+  <p style="text-align:center;margin:0 0 8px;">
+    <img src="{{ $graphique['image'] }}" alt="" style="width:140px;height:140px;">
+  </p>
+@endif
 @if (empty($graphique['legende']))
   <p class="vide">Aucune donnée</p>
 @else

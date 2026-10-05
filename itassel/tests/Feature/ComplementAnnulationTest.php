@@ -69,7 +69,11 @@ class ComplementAnnulationTest extends TestCase
         $this->connecter($this->superAdmin());
         $doleance = $this->doleance();
         $recu = Complement::factory()->recu()->create(['id_doleance' => $doleance->id_doleance]);
-        $annule = Complement::factory()->create(['id_doleance' => $doleance->id_doleance, 'etat' => 'annule']);
+        $annule = Complement::factory()->create([
+            'id_doleance' => $doleance->id_doleance,
+            'etat' => 'annule',
+            'motif_annulation' => 'Déjà annulé en base.',
+        ]);
 
         $this->postJson("/api/admin/complements/{$recu->id_complement}/annuler", ['motif' => 'x'])
             ->assertStatus(409)->assertJson(['code' => 'deja_repondu']);
@@ -88,7 +92,9 @@ class ComplementAnnulationTest extends TestCase
         Reaffectation::factory()->create([
             'id_doleance' => $doleance->id_doleance,
             'id_demandeur' => $admin->id_utilisateur,
+            'id_decideur' => $admin->id_utilisateur,
             'etat' => 'acceptee',
+            'date_decision' => now(),
             'id_service_destination' => $destination->id_service,
         ]);
 

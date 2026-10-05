@@ -73,6 +73,8 @@ Route::prefix('admin')->group(function () {
         Route::get('/statuts', [DoleanceAdminController::class, 'statuts']);
         Route::get('/tableau-de-bord', [TableauDeBordController::class, 'index'])
             ->middleware('permission:tableau_de_bord.voir');
+        Route::get('/tableau-de-bord/export', [TableauDeBordController::class, 'export'])
+            ->middleware('permission:tableau_de_bord.global');
 
         Route::get('/doleances', [DoleanceAdminController::class, 'index'])
             ->middleware('permission:doleances.voir');

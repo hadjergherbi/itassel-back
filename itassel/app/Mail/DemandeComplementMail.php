@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\MailCitoyenLocalise;
 use App\Models\Complement;
 use App\Models\Doleance;
 use Illuminate\Bus\Queueable;
@@ -12,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class DemandeComplementMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use MailCitoyenLocalise, Queueable, SerializesModels;
 
     public string $lienSuivi;
 
@@ -21,12 +22,15 @@ class DemandeComplementMail extends Mailable
         public Complement $complement,
     ) {
         $this->lienSuivi = $this->lienSuiviPour($doleance);
+        $this->appliquerLangue($doleance->langue ?? 'fr');
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "ITASSEL — Information demandée pour votre dossier {$this->doleance->reference}",
+            subject: $this->sujetTraduit('emails.demande_complement.sujet', [
+                'reference' => $this->doleance->reference,
+            ]),
         );
     }
 

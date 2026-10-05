@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\MailCitoyenLocalise;
 use App\Models\Doleance;
 use App\Models\Reponse;
 use Illuminate\Bus\Queueable;
@@ -12,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class ReponseServiceMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use MailCitoyenLocalise, Queueable, SerializesModels;
 
     public string $lienSuivi;
 
@@ -22,12 +23,15 @@ class ReponseServiceMail extends Mailable
     ) {
         $base = rtrim((string) (config('itassel.frontend_url') ?: 'http://localhost:5173'), '/');
         $this->lienSuivi = $base.'/suivre?reference='.urlencode($doleance->reference);
+        $this->appliquerLangue($doleance->langue ?? 'fr');
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "ITASSEL — Réponse du service pour votre dossier {$this->doleance->reference}",
+            subject: $this->sujetTraduit('emails.reponse_service.sujet', [
+                'reference' => $this->doleance->reference,
+            ]),
         );
     }
 

@@ -198,6 +198,7 @@ class TableauDeBordServiceTest extends TestCase
             'id_service_propose' => $jeunesse->id_service,
             'etat' => 'refusee',
             'date_decision' => now(),
+            'id_decideur' => $autre->id_utilisateur,
             'motif' => 'Hors périmètre',
         ]);
         Historique::create([

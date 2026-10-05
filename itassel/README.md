@@ -13,10 +13,10 @@ Ce dépôt contient uniquement le back-end. L’interface d’administration et 
 
 ## Fonctionnalités principales
 
-- Dépôt public d’une doléance (sans pièce jointe) et suivi citoyen (code de vérification, réponse à un complément)
+- Dépôt public d’une doléance (sans pièce jointe) et suivi citoyen (code de vérification, réponse à un complément ; pièce jointe acceptée uniquement si l’agent l’a exigée)
 - Authentification des administrateurs (connexion, invitation, mot de passe oublié)
 - Tableau de bord et liste des doléances, filtrés selon le service
-- Traitement des dossiers : statuts, réponses, notes internes, pièces jointes (uniquement en réponse à une demande de complément), compléments, reclassement
+- Traitement des dossiers : statuts, réponses, notes internes, pièces jointes (acceptées uniquement si l’agent les a exigées dans la demande de complément), compléments, reclassement
 - Réaffectation d’un dossier d’un service à un autre
 - Gestion des utilisateurs, rôles, permissions et services
 - Notifications dans l’application et par e-mail
@@ -59,9 +59,33 @@ L’API est disponible par défaut sur `http://127.0.0.1:8000`. Les routes méti
 
 ## Tests
 
+Par défaut, PHPUnit utilise SQLite en mémoire (`phpunit.xml`) :
+
 ```bash
 php artisan test
 ```
+
+Pour la parité avec MySQL (production), créer une base **dédiée** dont le nom se termine par `_test` — jamais la base `itassel` de développement :
+
+```sql
+CREATE DATABASE itassel_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Les identifiants `DB_USERNAME` / `DB_PASSWORD` sont ceux du `.env`. La configuration `phpunit.mysql.xml` force `DB_DATABASE=itassel_test`. Une garde dans `tests/TestCase.php` refuse toute base MySQL qui ne finit pas par `_test`.
+
+```bash
+composer test:mysql
+```
+
+`php artisan test` ajoute toujours `phpunit.xml`. Le script passe aussi `phpunit.mysql.xml` : PHPUnit avertit que `--configuration` est répété, puis utilise le fichier MySQL. `failOnPhpunitWarning="false"` dans ce fichier évite qu’un code de sortie 1 soit renvoyé pour cet avertissement seul.
+
+`tests/Feature/Phase0SqliteTest.php` (premier cas) ne s’exécute que sur SQLite : il vérifie le chemin mémoire. Le reste de la suite tourne sur les deux moteurs.
+
+## Langues des emails citoyens
+
+Les 7 emails envoyés au citoyen (dépôt, code, statut, complément, annulation, réponse, accusé) suivent `doleances.langue` (`fr`, `en`, `ar`). Les emails internes (invitation, mot de passe, notification d’agent) restent en français.
+
+Les libellés de statut et `message_citoyen` sont des données configurables en base, rédigées en français : ils ne sont pas traduits dans les fichiers `lang/*/emails.php`.
 
 ## Authentification
 

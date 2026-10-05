@@ -1,13 +1,9 @@
 @extends('emails.layout')
 
 @section('content')
-  <p>Bonjour {{ $doleance->prenom }} {{ $doleance->nom }},</p>
+  <p>{{ __('emails.accuse_complement.salutation', ['prenom' => $doleance->prenom, 'nom' => $doleance->nom]) }}</p>
 
-  <p>
-    Votre réponse à la demande de complément pour le dossier
-    <strong>{{ $doleance->reference }}</strong> a bien été reçue.
-    Le service concerné va poursuivre l'étude de votre dossier.
-  </p>
+  <p>{{ __('emails.accuse_complement.intro', ['reference' => $doleance->reference]) }}</p>
 
-  <p>Vous serez informé(e) par email de la suite donnée à votre demande.</p>
+  <p>{{ __('emails.accuse_complement.suite') }}</p>
 @endsection

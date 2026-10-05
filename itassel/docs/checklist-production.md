@@ -57,7 +57,18 @@ php artisan migrate --force && php artisan db:seed --force && php artisan config
 
 - [ ] `php artisan config:cache`
 - [ ] `php artisan route:cache`
-- [ ] Cron du scheduler : `* * * * * cd /chemin/vers/itassel && php artisan schedule:run >> /dev/null 2>&1` (chaque minute) — nécessaire pour `sanctum:prune-expired`
+- [ ] Cron du scheduler : `* * * * * cd /chemin/vers/itassel && php artisan schedule:run >> /dev/null 2>&1` (chaque minute) — `sanctum:prune-expired` et `queue:prune-failed`
+- [ ] `php artisan itassel:verifier-production` se termine sans KO
+
+## File d'attente
+
+Les emails (sauf le renvoi manuel) partent par un job `EnvoyerEmailNotification`. Le code OTP de suivi utilise la file `prioritaire`.
+
+- [ ] `QUEUE_CONNECTION=database`
+- [ ] Tables déjà migrées ici ; sur un serveur neuf : `php artisan queue:table && php artisan migrate`
+- [ ] Superviseur (systemd ou Supervisor) : `php artisan queue:work --queue=prioritaire,default --tries=3 --max-time=3600`
+- [ ] `php artisan queue:restart` à chaque déploiement
+- [ ] Surveiller `php artisan queue:failed` et relancer avec `php artisan queue:retry all`
 - [ ] Permissions : `storage/` et `bootstrap/cache` accessibles en écriture uniquement par l’utilisateur du pool PHP ; le reste du code en lecture
 - [ ] HTTPS terminé (reverse proxy ou serveur) pour que HSTS soit émis
 
@@ -72,7 +83,7 @@ php artisan migrate --force && php artisan db:seed --force && php artisan config
 - [ ] Un jeton de plus de 8 h est refusé (401 « Session expirée »)
 - [ ] Cinq échecs de connexion verrouillent le compte 15 minutes
 - [ ] Le formulaire public exige un jeton frais et refuse le champ piège `site_web`
-- [ ] Le dépôt public refuse toute `piece_jointe` (422) ; pièce jointe uniquement en réponse à une demande de complément
+- [ ] Le dépôt public refuse toute `piece_jointe` (422). En réponse à un complément, une pièce jointe n’est acceptée que si l’agent l’a exigée (`piece_exigee`)
 - [ ] L’aperçu des pièces jointes est en `inline` ; le téléchargement (`attachment`) exige `pieces_jointes.telecharger`
 - [ ] Les JPEG/PNG déposés sont ré-encodés (plus d’EXIF GPS)
 

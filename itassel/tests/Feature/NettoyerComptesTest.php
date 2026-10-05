@@ -153,6 +153,7 @@ class NettoyerComptesTest extends TestCase
 
         $service = Utilisateur::where('email', 'demo.sport@itassel.dz')->first();
         $service->role = 'super_admin';
+        $service->id_service = null;
         $service->save();
         $this->artisan('itassel:nettoyer-comptes', ['--force' => true])
             ->assertFailed()

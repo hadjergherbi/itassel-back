@@ -170,7 +170,7 @@ class JournalAdminController extends Controller
         }
         if (array_key_exists('sensible', $filtres) && is_bool($filtres['sensible'])) {
             $codes = config('itassel.journal.sensibles', []);
-            $prefixe = "action LIKE 'suppression\\_%' ESCAPE '\\'";
+            $prefixe = $this->clauseActionSuppression($query);
             if ($filtres['sensible']) {
                 $query->where(function ($q) use ($codes, $prefixe) {
                     $q->whereRaw($prefixe)->orWhereIn('action', $codes);
@@ -391,7 +391,7 @@ class JournalAdminController extends Controller
     {
         if ($sql) {
             $codes = config('itassel.journal.sensibles', []);
-            $prefixe = "action LIKE 'suppression\\_%' ESCAPE '\\'";
+            $prefixe = $this->clauseActionSuppression($requete);
 
             return (clone $requete)->where(function ($q) use ($codes, $prefixe) {
                 $q->whereRaw($prefixe)->orWhereIn('action', $codes);
@@ -399,6 +399,19 @@ class JournalAdminController extends Controller
         }
 
         return $lignes->filter(fn (Journal $journal) => $this->estSensible($journal->action))->count();
+    }
+
+    /**
+     * « suppression_… » : l'antislash est un caractère d'échappement SQL sur MariaDB/MySQL,
+     * pas sur SQLite. Le motif doit donc être écrit différemment.
+     */
+    private function clauseActionSuppression($query): string
+    {
+        if ($query->getConnection()->getDriverName() === 'sqlite') {
+            return "action LIKE 'suppression\\_%' ESCAPE '\\'";
+        }
+
+        return "action LIKE 'suppression\\\\_%' ESCAPE '\\\\'";
     }
 
     private function estEchecConnexion(Journal $journal): bool
