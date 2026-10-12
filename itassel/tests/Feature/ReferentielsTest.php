@@ -96,4 +96,15 @@ class ReferentielsTest extends TestCase
 
         $this->assertDatabaseMissing('qualites', ['libelle' => 'Sportif']);
     }
+
+    public function test_les_noms_accentues_apostrophe_et_arabes_sont_acceptes(): void
+    {
+        foreach (['D’Aït-Ahmed', 'Núñez', 'محمد'] as $index => $nom) {
+            $this->postJson('/api/doleances', $this->champsDepotPublic([
+                'nom' => $nom,
+                'prenom' => $nom,
+                'email' => "nom{$index}@example.test",
+            ]))->assertCreated();
+        }
+    }
 }

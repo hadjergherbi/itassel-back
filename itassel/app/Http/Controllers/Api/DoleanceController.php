@@ -54,7 +54,7 @@ class DoleanceController extends Controller
             $request->merge(['telephone' => preg_replace('/\s+/', '', $telephone)]);
         }
 
-        $nomPersonne = "/^[\\p{L} '\\-]+$/u";
+        $nomPersonne = "/^[\\p{L}\\p{M}][\\p{L}\\p{M} '’\\-]*$/u";
 
         $data = $request->validate([
             'nom' => ['required', 'string', 'max:60', 'regex:'.$nomPersonne],
