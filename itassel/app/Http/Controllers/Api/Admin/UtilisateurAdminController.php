@@ -11,6 +11,7 @@ use App\Services\CompteService;
 use App\Services\UtilisateurService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class UtilisateurAdminController extends Controller
 {
@@ -24,7 +25,9 @@ class UtilisateurAdminController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $query = Utilisateur::with('service')->orderBy('nom');
+        $query = Utilisateur::with('service')
+            ->withExists('servicesResponsable as est_responsable')
+            ->orderBy('nom');
 
         if (! empty($data['role'])) {
             $query->where('role', $data['role']);
@@ -43,13 +46,11 @@ class UtilisateurAdminController extends Controller
                     ->orWhere('email', 'like', $texte);
             });
         }
+        if (! empty($data['etat'])) {
+            $this->filtrerEtat($query, $data['etat']);
+        }
 
         $page = $query->paginate(25)->through(fn (Utilisateur $u) => $this->ligne($u));
-
-        if (! empty($data['etat'])) {
-            $filtres = collect($page->items())->filter(fn ($l) => $l['etat_compte'] === $data['etat'])->values();
-            $page->setCollection($filtres);
-        }
 
         return response()->json($page);
     }
@@ -77,8 +78,16 @@ class UtilisateurAdminController extends Controller
             'nom' => ['sometimes', 'string', 'max:80'],
             'prenom' => ['sometimes', 'string', 'max:80'],
             'email' => ['sometimes', 'email', 'max:120', Rule::unique('utilisateurs', 'email')->ignore($utilisateur->id_utilisateur, 'id_utilisateur')],
-            'id_service' => ['nullable', ...Service::regleIdAssignable()],
+            'id_service' => ['sometimes', 'nullable', ...Service::regleIdAssignable()],
         ]);
+
+        if ($utilisateur->role === 'admin_service'
+            && array_key_exists('id_service', $data)
+            && $data['id_service'] === null) {
+            throw ValidationException::withMessages([
+                'id_service' => ['Un administrateur de service doit être rattaché à un service.'],
+            ]);
+        }
 
         try {
             $utilisateur = UtilisateurService::modifier($utilisateur, $data, $request->user(), $request);
@@ -99,7 +108,7 @@ class UtilisateurAdminController extends Controller
     public function desactiver(Request $request, Utilisateur $utilisateur)
     {
         $data = $request->validate([
-            'id_remplacant' => ['nullable', 'integer', 'exists:utilisateurs,id_utilisateur'],
+            'id_remplacant' => ['nullable', 'integer', Rule::exists('utilisateurs', 'id_utilisateur')->whereNull('supprime_le')],
         ]);
 
         $remplacant = isset($data['id_remplacant'])
@@ -169,12 +178,37 @@ class UtilisateurAdminController extends Controller
             'actif' => $u->actif,
             'etat_compte' => $u->etatCompte(),
             'derniere_connexion' => $u->derniere_connexion,
-            'est_responsable' => Service::where('id_responsable', $u->id_utilisateur)->exists(),
+            'est_responsable' => (bool) $u->est_responsable,
         ];
     }
 
     private function detail(Utilisateur $u): array
     {
+        if (! array_key_exists('est_responsable', $u->getAttributes())) {
+            $u->loadExists('servicesResponsable as est_responsable');
+        }
+
         return $this->ligne($u);
+    }
+
+    private function filtrerEtat($query, string $etat): void
+    {
+        $seuil = now()->subHours((int) config('itassel.jetons.invitation_heures', 72));
+
+        match ($etat) {
+            'desactive' => $query->where('actif', false),
+            'actif' => $query->where('actif', true)->whereNotNull('mot_de_passe_defini_le'),
+            'invitation_expiree' => $query->where('actif', true)
+                ->whereNull('mot_de_passe_defini_le')
+                ->whereNotNull('invitation_envoyee_le')
+                ->where('invitation_envoyee_le', '<=', $seuil),
+            'invitation_en_attente' => $query->where('actif', true)
+                ->whereNull('mot_de_passe_defini_le')
+                ->where(function ($q) use ($seuil) {
+                    $q->whereNull('invitation_envoyee_le')
+                        ->orWhere('invitation_envoyee_le', '>', $seuil);
+                }),
+            default => null,
+        };
     }
 }
