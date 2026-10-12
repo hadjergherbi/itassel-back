@@ -131,7 +131,11 @@ class ReaffectationAdminController extends Controller
         $utilisateur = $request->user();
         $demande = Reaffectation::with('doleance')->find($id);
 
-        if (! $demande || (int) $demande->id_demandeur !== (int) $utilisateur->id_utilisateur) {
+        if (! $demande) {
+            return response()->json(['message' => 'Demande de réaffectation introuvable.'], 404);
+        }
+
+        if ((int) $demande->id_demandeur !== (int) $utilisateur->id_utilisateur) {
             return response()->json(['message' => 'Seul l\'auteur de la demande peut l\'annuler.'], 403);
         }
 
