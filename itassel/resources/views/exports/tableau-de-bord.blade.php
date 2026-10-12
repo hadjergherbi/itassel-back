@@ -42,7 +42,7 @@
   <table class="kpi">
     <tr>
       <td>
-        <div class="nombre">{{ number_format((float) $taux_resolution, 1, ',', ' ') }} %</div>
+        <div class="nombre">{{ $taux_resolution === null ? '—' : number_format($taux_resolution * 100, 1, ',', ' ').' %' }}</div>
         <div class="etiquette">Taux de résolution</div>
       </td>
       <td class="sep">

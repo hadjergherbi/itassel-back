@@ -208,4 +208,20 @@ class IssuesWorkflowTest extends TestCase
         $this->assertSame(1, $issues['non_retenue']);
         $this->assertSame(0.5, $issues['taux_resolution']);
     }
+
+    public function test_le_taux_de_resolution_ignore_les_dossiers_ouverts(): void
+    {
+        $admin = $this->superAdmin();
+        $this->doleance(['statut' => Statut::RESOLUE]);
+        $this->doleance(['statut' => Statut::NON_RETENUE]);
+        $this->doleance(['statut' => Statut::NOUVELLE]);
+
+        $vue = StatistiqueService::vueGlobale($admin);
+        $issues = StatistiqueService::issues($admin);
+
+        $this->assertSame(0.5, $vue['taux_resolution']);
+        $this->assertSame($vue['taux_resolution'], $issues['taux_resolution']);
+        $this->assertSame(0.5, StatistiqueService::tauxResolution(1, 1));
+        $this->assertNull(StatistiqueService::tauxResolution(0, 0));
+    }
 }

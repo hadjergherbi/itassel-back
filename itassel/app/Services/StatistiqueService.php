@@ -24,6 +24,16 @@ class StatistiqueService
         9 => 'Sept.', 10 => 'Oct.', 11 => 'Nov.', 12 => 'Déc.',
     ];
 
+    /**
+     * Définition unique : config('itassel.taux_resolution').
+     */
+    public static function tauxResolution(int $resolues, int $nonRetenues): ?float
+    {
+        $denom = $resolues + $nonRetenues;
+
+        return $denom > 0 ? round($resolues / $denom, 4) : null;
+    }
+
     public static function vueGlobale(Utilisateur $utilisateur): array
     {
         $visibles = Acces::doleancesVisibles($utilisateur);
@@ -80,8 +90,6 @@ class StatistiqueService
             ];
         })->values();
 
-        $denom = $resolues + ($parCode[Statut::NON_RETENUE] ?? 0);
-
         return [
             'nouvelles' => $nouvelles,
             'en_cours' => $parCode[Statut::EN_COURS] ?? 0,
@@ -94,7 +102,7 @@ class StatistiqueService
             'comptes_desactives' => Utilisateur::where('actif', false)->count(),
             'invitations_en_attente' => Utilisateur::where('actif', true)->whereNull('mot_de_passe_defini_le')->count(),
             'par_service' => $parService,
-            'taux_resolution' => $denom > 0 ? round($resolues / $denom, 4) : null,
+            'taux_resolution' => self::tauxResolution($resolues, $parCode[Statut::NON_RETENUE] ?? 0),
         ];
     }
 
@@ -128,17 +136,6 @@ class StatistiqueService
             ->whereHas('nature', fn ($n) => $n->where('famille', 'demande'))
             ->count();
 
-        $reclamationIds = Nature::where('famille', 'reclamation')->pluck('id_nature');
-        $resoluesRec = (clone $visibles)
-            ->whereIn('id_nature', $reclamationIds)
-            ->whereHas('statut', fn ($q) => $q->where('code', Statut::RESOLUE))
-            ->count();
-        $nonRetenuesRec = (clone $visibles)
-            ->whereIn('id_nature', $reclamationIds)
-            ->whereHas('statut', fn ($q) => $q->where('code', Statut::NON_RETENUE))
-            ->count();
-        $denom = $resoluesRec + $nonRetenuesRec;
-
         $ouverts = (clone $visibles)
             ->whereHas('statut', fn ($q) => $q->whereIn('code', Statut::codesOuverts()))
             ->count();
@@ -151,7 +148,10 @@ class StatistiqueService
                 'resolus_a_requalifier' => $requalifier,
             ],
             'ouverts' => $ouverts,
-            'taux_resolution' => $denom > 0 ? round($resoluesRec / $denom, 4) : null,
+            'taux_resolution' => self::tauxResolution(
+                $parIssue[Statut::RESOLUE] ?? 0,
+                $parIssue[Statut::NON_RETENUE] ?? 0,
+            ),
         ]);
     }
 
@@ -292,6 +292,9 @@ class StatistiqueService
         $deposees = (clone $visibles)->whereBetween('date_depot', [$periode['debut'], $periode['fin']]);
         $depuis = (clone $visibles)->min('date_depot');
         $idResolue = Statut::parCode(Statut::RESOLUE)->id_statut;
+        $idNonRetenue = Statut::parCode(Statut::NON_RETENUE)->id_statut;
+        $resoluesPeriode = (clone $deposees)->where('id_statut', $idResolue)->count();
+        $nonRetenuesPeriode = (clone $deposees)->where('id_statut', $idNonRetenue)->count();
 
         return [
             'periode' => [
@@ -303,8 +306,9 @@ class StatistiqueService
             'indicateurs' => [
                 'nouvelles' => $totauxParCode[Statut::NOUVELLE] ?? 0,
                 'en_cours' => $totauxParCode[Statut::EN_COURS] ?? 0,
-                'resolues' => (clone $deposees)->where('id_statut', $idResolue)->count(),
+                'resolues' => $resoluesPeriode,
                 'total' => (clone $deposees)->count(),
+                'taux_resolution' => self::tauxResolution($resoluesPeriode, $nonRetenuesPeriode),
                 'depuis' => $depuis ? substr((string) $depuis, 0, 10) : now()->toDateString(),
                 'delai_moyen_jours' => static::delaiMoyen((clone $visibles), $periode['debut'], $periode['fin']),
                 'delai_moyen_tendance_jours' => static::delaiTendance(clone $visibles),

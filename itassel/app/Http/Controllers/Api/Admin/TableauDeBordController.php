@@ -50,9 +50,7 @@ class TableauDeBordController extends Controller
         $periode = Periode::resoudre($code);
         $donnees = StatistiqueService::pourExport($request->user(), $code);
         $indicateurs = $donnees['tableau']['indicateurs'];
-        $total = (int) $indicateurs['total'];
-        $resolues = (int) $indicateurs['resolues'];
-        $taux = $total > 0 ? round($resolues / $total * 100, 1) : 0.0;
+        $taux = $indicateurs['taux_resolution'] ?? null;
 
         $graphiques = [
             $this->graphique('Répartition par statut', $this->parts($donnees['tableau']['repartition'])),

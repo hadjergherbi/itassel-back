@@ -16,6 +16,11 @@ return [
         'service' => 'demo.sport@itassel.dz',
     ],
 
+    // Part des dossiers « résolue » parmi les dossiers tranchés
+    // (résolues + non retenues). Ratio de 0 à 1, null s'il n'y en a aucun.
+    // Les dossiers encore ouverts ne comptent pas. Les PDF affichent ce ratio en pourcentage.
+    'taux_resolution' => 'resolues / (resolues + non_retenue)',
+
     'suivi' => [
         'max_demandes_code' => 3,
         'max_essais_code' => 5,

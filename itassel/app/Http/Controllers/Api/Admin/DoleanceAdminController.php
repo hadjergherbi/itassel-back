@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\Statut;
 use App\Models\Utilisateur;
 use App\Services\JournalService;
+use App\Services\StatistiqueService;
 use App\Services\ReclassementService;
 use App\Support\Acces;
 use App\Support\DoleanceFiltre;
@@ -433,10 +434,12 @@ class DoleanceAdminController extends Controller
                 ->pluck('total', 'code');
             $total = (int) $totaux->sum();
             $resolues = (int) ($totaux[Statut::RESOLUE] ?? 0);
+            $nonRetenues = (int) ($totaux[Statut::NON_RETENUE] ?? 0);
             $enCours = (int) ($totaux[Statut::EN_COURS] ?? 0);
         } else {
             $total = $doleances->count();
             $resolues = $doleances->filter(fn ($d) => $d->statut?->code === Statut::RESOLUE)->count();
+            $nonRetenues = $doleances->filter(fn ($d) => $d->statut?->code === Statut::NON_RETENUE)->count();
             $enCours = $doleances->filter(fn ($d) => $d->statut?->code === Statut::EN_COURS)->count();
         }
 
@@ -444,7 +447,7 @@ class DoleanceAdminController extends Controller
             'total' => $total,
             'resolues' => $resolues,
             'en_cours' => $enCours,
-            'taux' => $total > 0 ? round($resolues / $total * 100, 1) : 0.0,
+            'taux' => StatistiqueService::tauxResolution($resolues, $nonRetenues),
         ];
     }
 
