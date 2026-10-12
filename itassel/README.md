@@ -59,27 +59,20 @@ L’API est disponible par défaut sur `http://127.0.0.1:8000`. Les routes méti
 
 ## Tests
 
-Par défaut, PHPUnit utilise SQLite en mémoire (`phpunit.xml`) :
+La suite tourne sur MySQL, le même moteur qu’en production, pour que les contraintes `CHECK` et les clés étrangères soient réellement appliquées. Elle utilise uniquement la base `itassel_test`. `tests/TestCase.php` refuse de démarrer si la connexion n’est pas MySQL ou si le nom de la base ne finit pas par `_test`.
 
 ```bash
-php artisan test
+copy .env.testing.example .env.testing
 ```
 
-Pour la parité avec MySQL (production), créer une base **dédiée** dont le nom se termine par `_test` — jamais la base `itassel` de développement :
-
-```sql
-CREATE DATABASE itassel_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-Les identifiants `DB_USERNAME` / `DB_PASSWORD` sont ceux du `.env`. La configuration `phpunit.mysql.xml` force `DB_DATABASE=itassel_test`. Une garde dans `tests/TestCase.php` refuse toute base MySQL qui ne finit pas par `_test`.
+Renseigner `DB_USERNAME` et `DB_PASSWORD` dans `.env.testing` (fichier ignoré par git, sans mot de passe SMTP ni `APP_KEY` du `.env`). Puis :
 
 ```bash
-composer test:mysql
+composer test:db
+composer test
 ```
 
-`php artisan test` ajoute toujours `phpunit.xml`. Le script passe aussi `phpunit.mysql.xml` : PHPUnit avertit que `--configuration` est répété, puis utilise le fichier MySQL. `failOnPhpunitWarning="false"` dans ce fichier évite qu’un code de sortie 1 soit renvoyé pour cet avertissement seul.
-
-`tests/Feature/Phase0SqliteTest.php` (premier cas) ne s’exécute que sur SQLite : il vérifie le chemin mémoire. Le reste de la suite tourne sur les deux moteurs.
+`composer test:db` exécute `CREATE DATABASE IF NOT EXISTS itassel_test`. `phpunit.xml` force `DB_DATABASE=itassel_test`. Les identifiants viennent de `.env.testing`.
 
 ## Langues des emails citoyens
 

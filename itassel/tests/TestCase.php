@@ -3,22 +3,32 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
 {
     protected function setUp(): void
     {
-        parent::setUp();
-
-        $connexion = (string) config('database.default');
-        if ($connexion !== 'mysql') {
-            return;
+        if (! $this->app) {
+            $this->refreshApplication();
         }
 
-        $base = (string) config('database.connections.mysql.database');
-        if (! str_ends_with($base, '_test')) {
-            throw new \RuntimeException(
-                "Refus d'exécuter les tests sur la base MySQL « {$base} ». Le nom doit se terminer par _test."
+        $this->verifierBaseDeTest();
+
+        parent::setUp();
+    }
+
+    /**
+     * Avant RefreshDatabase : la suite ne peut pas vider une autre base.
+     */
+    private function verifierBaseDeTest(): void
+    {
+        $connexion = (string) config('database.default');
+        $base = (string) config("database.connections.{$connexion}.database");
+
+        if ($connexion !== 'mysql' || ! str_ends_with($base, '_test')) {
+            throw new RuntimeException(
+                "Les tests doivent tourner sur une base MySQL dont le nom finit par _test. Base actuelle : {$base}"
             );
         }
     }

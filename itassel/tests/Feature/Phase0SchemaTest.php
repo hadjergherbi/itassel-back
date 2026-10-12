@@ -9,18 +9,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
-class Phase0SqliteTest extends TestCase
+class Phase0SchemaTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_les_migrations_s_executent_sur_sqlite(): void
+    public function test_les_migrations_s_executent(): void
     {
-        // Spécifique au chemin SQLite mémoire (phpunit.xml). La parité MySQL
-        // est la suite complète lancée avec composer test:mysql.
-        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
-            $this->markTestSkipped('Ce contrôle vise le schéma SQLite mémoire de phpunit.xml.');
-        }
-
+        $this->assertSame('mysql', Schema::getConnection()->getDriverName());
+        $this->assertTrue(str_ends_with(Schema::getConnection()->getDatabaseName(), '_test'));
         $this->assertTrue(Schema::hasTable('utilisateurs'));
         $this->assertTrue(Schema::hasColumn('statuts', 'code'));
         $this->assertTrue(Schema::hasColumn('statuts', 'message_citoyen'));
