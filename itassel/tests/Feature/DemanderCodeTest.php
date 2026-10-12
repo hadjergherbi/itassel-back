@@ -78,4 +78,22 @@ class DemanderCodeTest extends TestCase
         Mail::assertNothingSent();
         $this->assertSame(3, CodeVerification::where('id_doleance', $doleance->id_doleance)->count());
     }
+
+    public function test_verifier_code_normalise_la_reference(): void
+    {
+        $doleance = $this->doleance(['reference' => 'ITS-2026-000042']);
+        CodeVerification::create([
+            'code_hash' => hash('sha256', '123456'),
+            'date_creation' => now(),
+            'date_expiration' => now()->addMinutes(10),
+            'nombre_essais' => 0,
+            'utilise' => false,
+            'id_doleance' => $doleance->id_doleance,
+        ]);
+
+        $this->postJson('/api/suivi/verifier-code', [
+            'reference' => '  its-2026-000042  ',
+            'code' => '123456',
+        ])->assertOk()->assertJsonStructure(['jeton_session']);
+    }
 }

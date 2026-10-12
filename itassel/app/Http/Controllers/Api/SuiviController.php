@@ -92,7 +92,8 @@ class SuiviController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
-        $doleance = Doleance::where('reference', $data['reference'])->first();
+        $reference = strtoupper(trim($data['reference']));
+        $doleance = Doleance::where('reference', $reference)->first();
         $messageEchec = 'Code invalide ou expiré.';
 
         if (! $doleance) {
