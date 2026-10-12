@@ -8,6 +8,7 @@ use App\Mail\ReinitialisationMotDePasseMail;
 use App\Models\JetonMotDePasse;
 use App\Models\Utilisateur;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -23,20 +24,36 @@ class CompteService
 
     public static function creer(array $donnees, Utilisateur $acteur, Request $request): Utilisateur
     {
-        $utilisateur = new Utilisateur;
-        $utilisateur->fill([
-            'nom' => $donnees['nom'],
-            'prenom' => $donnees['prenom'],
-            'email' => $donnees['email'],
-            'actif' => true,
-            'id_service' => $donnees['role'] === 'super_admin' ? null : $donnees['id_service'],
-        ]);
-        $utilisateur->role = $donnees['role'];
-        $utilisateur->mot_de_passe = Hash::make(Str::random(64));
-        $utilisateur->mot_de_passe_defini_le = null;
-        $utilisateur->save();
+        $utilisateur = DB::transaction(function () use ($donnees, $acteur, $request) {
+            $role = $donnees['role'];
+            $affectation = $role === 'super_admin'
+                ? ['ids' => [], 'principal' => null]
+                : UtilisateurService::resoudreAffectation($donnees);
 
-        JournalService::action($request, $acteur, 'creation_utilisateur', $utilisateur->nomComplet(), $utilisateur);
+            $utilisateur = new Utilisateur;
+            $utilisateur->fill([
+                'nom' => $donnees['nom'],
+                'prenom' => $donnees['prenom'],
+                'email' => $donnees['email'],
+                'actif' => true,
+                'id_service' => $affectation['principal'],
+            ]);
+            $utilisateur->role = $role;
+            $utilisateur->mot_de_passe = Hash::make(Str::random(64));
+            $utilisateur->mot_de_passe_defini_le = null;
+            $utilisateur->save();
+            UtilisateurService::synchroniserServices($utilisateur, $affectation['ids']);
+
+            JournalService::action(
+                $request,
+                $acteur,
+                'creation_utilisateur',
+                UtilisateurService::detailServices($utilisateur->nomComplet(), [], $affectation['ids'], true),
+                $utilisateur,
+            );
+
+            return $utilisateur;
+        });
 
         static::envoyerInvitation($utilisateur, $acteur, $request);
 

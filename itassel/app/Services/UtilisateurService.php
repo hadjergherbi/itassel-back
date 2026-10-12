@@ -21,29 +21,65 @@ class UtilisateurService
 {
     public static function modifier(Utilisateur $cible, array $donnees, Utilisateur $acteur, Request $request): Utilisateur
     {
-        if (array_key_exists('id_service', $donnees)
-            && (int) ($donnees['id_service'] ?? 0) !== (int) ($cible->id_service ?? 0)
-            && static::bloqueChangementService($cible)
-        ) {
-            throw new ConflitMetier(
-                'dossiers_en_cours',
-                'Ce compte est responsable de dossiers ouverts ou d\'un service : le service ne peut pas être modifié.',
+        $cible = DB::transaction(function () use ($cible, $donnees, $acteur, $request) {
+            $role = $donnees['role'] ?? $cible->role;
+
+            if ($cible->role === 'super_admin' && $role !== 'super_admin' && static::dernierSuperAdminActif($cible)) {
+                throw new ConflitMetier(
+                    'dernier_super_admin',
+                    'Impossible de retirer le rôle du dernier Super administrateur actif.',
+                );
+            }
+
+            $anciens = $cible->idsServices();
+            $toucheServices = $role !== $cible->role
+                || array_key_exists('ids_services', $donnees)
+                || array_key_exists('id_service', $donnees)
+                || array_key_exists('id_service_principal', $donnees);
+
+            if ($role === 'super_admin') {
+                $nouveaux = [];
+                $principal = null;
+            } elseif ($toucheServices) {
+                if (! array_key_exists('ids_services', $donnees)) {
+                    $donnees['ids_services'] = $anciens;
+                }
+                $affectation = static::resoudreAffectation($donnees);
+                $nouveaux = $affectation['ids'];
+                $principal = $affectation['principal'];
+            } else {
+                $nouveaux = $anciens;
+                $principal = $cible->id_service ? (int) $cible->id_service : null;
+            }
+
+            $retires = array_values(array_diff($anciens, $nouveaux));
+            if ($retires !== []) {
+                static::appliquerRetraitServices($cible, $retires, $donnees['id_remplacant'] ?? null, $acteur);
+            }
+
+            $cible->fill([
+                'nom' => $donnees['nom'] ?? $cible->nom,
+                'prenom' => $donnees['prenom'] ?? $cible->prenom,
+                'email' => $donnees['email'] ?? $cible->email,
+            ]);
+            $cible->role = $role;
+            $cible->id_service = $role === 'admin_service' ? $principal : null;
+            $cible->save();
+
+            if ($toucheServices) {
+                static::synchroniserServices($cible, $nouveaux);
+            }
+
+            JournalService::action(
+                $request,
+                $acteur,
+                'modification_utilisateur',
+                static::detailServices($cible->nomComplet(), $anciens, $nouveaux),
+                $cible,
             );
-        }
 
-        $cible->fill([
-            'nom' => $donnees['nom'] ?? $cible->nom,
-            'prenom' => $donnees['prenom'] ?? $cible->prenom,
-            'email' => $donnees['email'] ?? $cible->email,
-        ]);
-
-        if (array_key_exists('id_service', $donnees) && $cible->role === 'admin_service') {
-            $cible->id_service = $donnees['id_service'];
-        }
-
-        $cible->save();
-
-        JournalService::action($request, $acteur, 'modification_utilisateur', $cible->nomComplet(), $cible);
+            return $cible;
+        });
 
         return $cible->fresh('service');
     }
@@ -84,24 +120,7 @@ class UtilisateurService
                 $serviceGere->update(['id_responsable' => $remplacant?->id_utilisateur]);
             }
 
-            $dossiers = Doleance::where('id_responsable', $cible->id_utilisateur)
-                ->whereHas('statut', fn ($q) => $q->whereIn('code', Statut::codesOuverts()))
-                ->get();
-
-            foreach ($dossiers as $doleance) {
-                $doleance->update(['id_responsable' => $remplacant?->id_utilisateur]);
-
-                Historique::create([
-                    'date_evenement' => now(),
-                    'type_evenement' => 'changement_responsable',
-                    'detail' => $remplacant
-                        ? "Responsable : {$cible->nomComplet()} → {$remplacant->nomComplet()}"
-                        : "Responsable retiré : {$cible->nomComplet()}",
-                    'visible_demandeur' => false,
-                    'id_doleance' => $doleance->id_doleance,
-                    'id_utilisateur' => $acteur->id_utilisateur,
-                ]);
-            }
+            $dossiersTransferes = static::reassignerDossiersOuverts($cible, $remplacant, $acteur);
 
             $cible->actif = false;
             $cible->save();
@@ -111,7 +130,7 @@ class UtilisateurService
                 ->whereNull('utilise_le')
                 ->update(['utilise_le' => now()]);
 
-            return $dossiers->count();
+            return $dossiersTransferes;
         });
 
         JournalService::action($request, $acteur, 'desactivation_utilisateur', $cible->nomComplet(), $cible);
@@ -193,13 +212,171 @@ class UtilisateurService
         ];
     }
 
-    private static function bloqueChangementService(Utilisateur $cible): bool
+    /**
+     * @param  array<string, mixed>  $donnees
+     * @return array{ids: list<int>, principal: int}
+     */
+    public static function resoudreAffectation(array $donnees): array
     {
-        $ouvert = Doleance::where('id_responsable', $cible->id_utilisateur)
-            ->whereHas('statut', fn ($q) => $q->whereIn('code', Statut::codesOuverts()))
+        $ids = array_values(array_unique(array_map('intval', $donnees['ids_services'] ?? [])));
+
+        if ($ids === []) {
+            throw ValidationException::withMessages([
+                'ids_services' => ['Un administrateur de service doit être rattaché à au moins un service.'],
+            ]);
+        }
+
+        if (count($ids) > 10) {
+            throw ValidationException::withMessages([
+                'ids_services' => ['Un administrateur de service ne peut pas gérer plus de 10 services.'],
+            ]);
+        }
+
+        $principal = array_key_exists('id_service_principal', $donnees) && $donnees['id_service_principal'] !== null
+            ? (int) $donnees['id_service_principal']
+            : $ids[0];
+
+        if (! in_array($principal, $ids, true)) {
+            throw ValidationException::withMessages([
+                'id_service_principal' => ['Le service principal doit faire partie des services affectés.'],
+            ]);
+        }
+
+        return ['ids' => $ids, 'principal' => $principal];
+    }
+
+    /**
+     * @param  list<int>  $ids
+     */
+    public static function synchroniserServices(Utilisateur $utilisateur, array $ids): void
+    {
+        if ($utilisateur->role !== 'admin_service' || $ids === []) {
+            $utilisateur->services()->detach(null, false);
+        } else {
+            $utilisateur->services()->sync(array_map('intval', $ids));
+        }
+
+        $utilisateur->oublierIdsServices();
+    }
+
+    /**
+     * @param  list<int>  $anciens
+     * @param  list<int>  $nouveaux
+     */
+    public static function detailServices(string $nom, array $anciens, array $nouveaux, bool $creation = false): string
+    {
+        $nouvelleListe = static::libelleServices($nouveaux);
+
+        if ($creation) {
+            return "{$nom} — services : {$nouvelleListe}";
+        }
+
+        return "{$nom} — services : ".static::libelleServices($anciens)." → {$nouvelleListe}";
+    }
+
+    /**
+     * @param  list<int>  $idsRetires
+     */
+    private static function appliquerRetraitServices(Utilisateur $cible, array $idsRetires, ?int $idRemplacant, Utilisateur $acteur): void
+    {
+        $services = Service::whereIn('id_service', $idsRetires)->get()->keyBy('id_service');
+        $bloques = [];
+
+        foreach ($idsRetires as $id) {
+            $service = $services->first(fn (Service $service) => (int) $service->id_service === (int) $id);
+            if ($service && static::responsableDuService($cible, (int) $id)) {
+                $bloques[] = $service;
+            }
+        }
+
+        if ($bloques === []) {
+            return;
+        }
+
+        $noms = collect($bloques)->pluck('nom_service')->implode(', ');
+        if (! $idRemplacant) {
+            throw ValidationException::withMessages([
+                'ids_services' => ["Impossible de retirer {$noms} : ce compte en est responsable ou suit des dossiers ouverts de ce service. Désignez un remplaçant."],
+            ]);
+        }
+
+        $remplacant = Utilisateur::find($idRemplacant);
+        if (! $remplacant) {
+            throw ValidationException::withMessages([
+                'id_remplacant' => ['Le remplaçant est introuvable.'],
+            ]);
+        }
+
+        foreach ($bloques as $service) {
+            static::verifierRemplacant($remplacant, $service);
+            if ((int) $service->id_responsable === (int) $cible->id_utilisateur) {
+                $service->update(['id_responsable' => $remplacant->id_utilisateur]);
+            }
+            static::reassignerDossiersOuverts($cible, $remplacant, $acteur, (int) $service->id_service);
+        }
+    }
+
+    private static function responsableDuService(Utilisateur $cible, int $idService): bool
+    {
+        $responsable = Service::where('id_service', $idService)
+            ->where('id_responsable', $cible->id_utilisateur)
             ->exists();
 
-        return $ouvert || Service::where('id_responsable', $cible->id_utilisateur)->exists();
+        if ($responsable) {
+            return true;
+        }
+
+        return Doleance::where('id_service', $idService)
+            ->where('id_responsable', $cible->id_utilisateur)
+            ->whereHas('statut', fn ($q) => $q->whereIn('code', Statut::codesOuverts()))
+            ->exists();
+    }
+
+    private static function reassignerDossiersOuverts(
+        Utilisateur $cible,
+        ?Utilisateur $remplacant,
+        Utilisateur $acteur,
+        ?int $idService = null,
+    ): int {
+        $dossiers = Doleance::where('id_responsable', $cible->id_utilisateur)
+            ->when($idService !== null, fn ($q) => $q->where('id_service', $idService))
+            ->whereHas('statut', fn ($q) => $q->whereIn('code', Statut::codesOuverts()))
+            ->get();
+
+        foreach ($dossiers as $doleance) {
+            $doleance->update(['id_responsable' => $remplacant?->id_utilisateur]);
+
+            Historique::create([
+                'date_evenement' => now(),
+                'type_evenement' => 'changement_responsable',
+                'detail' => $remplacant
+                    ? "Responsable : {$cible->nomComplet()} → {$remplacant->nomComplet()}"
+                    : "Responsable retiré : {$cible->nomComplet()}",
+                'visible_demandeur' => false,
+                'id_doleance' => $doleance->id_doleance,
+                'id_utilisateur' => $acteur->id_utilisateur,
+            ]);
+        }
+
+        return $dossiers->count();
+    }
+
+    /**
+     * @param  list<int>  $ids
+     */
+    private static function libelleServices(array $ids): string
+    {
+        if ($ids === []) {
+            return 'aucun';
+        }
+
+        $noms = Service::whereIn('id_service', $ids)->pluck('nom_service', 'id_service');
+        $liste = [];
+        foreach ($ids as $id) {
+            $liste[] = (string) ($noms->get($id) ?? $noms->get((string) $id) ?? $id);
+        }
+
+        return implode(', ', $liste);
     }
 
     private static function dernierSuperAdminActif(Utilisateur $cible): bool

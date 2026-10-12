@@ -57,6 +57,7 @@ class UtilisateurAdminController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge(CreerUtilisateurRequest::normaliserSaisie($request->all()));
         $data = $request->validate((new CreerUtilisateurRequest)->rules());
 
         $utilisateur = CompteService::creer($data, $request->user(), $request);
@@ -74,16 +75,31 @@ class UtilisateurAdminController extends Controller
 
     public function update(Request $request, Utilisateur $utilisateur)
     {
-        $data = $request->validate([
+        $request->merge(CreerUtilisateurRequest::normaliserSaisie($request->all()));
+        $roleDemande = $request->input('role', $utilisateur->role);
+
+        $regles = [
             'nom' => ['sometimes', 'string', 'max:80'],
             'prenom' => ['sometimes', 'string', 'max:80'],
             'email' => ['sometimes', 'email', 'max:120', Rule::unique('utilisateurs', 'email')->ignore($utilisateur->id_utilisateur, 'id_utilisateur')],
+            'role' => ['sometimes', 'in:super_admin,admin_service'],
             'id_service' => ['sometimes', 'nullable', ...Service::regleIdAssignable()],
-        ]);
+            'ids_services' => ['sometimes', 'array', 'min:1', 'max:10'],
+            'ids_services.*' => [...Service::regleIdAssignable(), 'distinct'],
+            'id_service_principal' => ['sometimes', 'nullable', 'integer'],
+            'id_remplacant' => ['nullable', 'integer', Rule::exists('utilisateurs', 'id_utilisateur')->whereNull('supprime_le')],
+        ];
 
-        if ($utilisateur->role === 'admin_service'
+        if ($roleDemande === 'admin_service' && $utilisateur->role !== 'admin_service') {
+            $regles['ids_services'][] = 'required';
+        }
+
+        $data = $request->validate($regles);
+
+        if ($roleDemande === 'admin_service'
             && array_key_exists('id_service', $data)
-            && $data['id_service'] === null) {
+            && $data['id_service'] === null
+            && empty($data['ids_services'])) {
             throw ValidationException::withMessages([
                 'id_service' => ['Un administrateur de service doit être rattaché à un service.'],
             ]);
