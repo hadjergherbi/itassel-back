@@ -28,19 +28,23 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/referentiels', [ReferentielController::class, 'index'])
-    ->middleware('throttle:60,1');
+    ->middleware('throttle:referentiels');
 
 Route::get('/formulaire/jeton', [DoleanceController::class, 'jeton'])
-    ->middleware('throttle:30,1');
+    ->middleware('throttle:formulaire-jeton');
 
 Route::post('/doleances', [DoleanceController::class, 'store'])
-    ->middleware('throttle:10,1');
+    ->middleware('throttle:formulaire-depot');
 
-Route::prefix('suivi')->middleware('throttle:20,1')->group(function () {
-    Route::post('/demander-code', [SuiviController::class, 'demanderCode']);
-    Route::post('/verifier-code', [SuiviController::class, 'verifierCode']);
-    Route::get('/dossier', [SuiviController::class, 'consulterDossier']);
-    Route::post('/repondre-complement', [SuiviComplementController::class, 'repondre']);
+Route::prefix('suivi')->group(function () {
+    Route::post('/demander-code', [SuiviController::class, 'demanderCode'])
+        ->middleware('throttle:suivi-code');
+    Route::post('/verifier-code', [SuiviController::class, 'verifierCode'])
+        ->middleware('throttle:suivi-code');
+    Route::get('/dossier', [SuiviController::class, 'consulterDossier'])
+        ->middleware('throttle:suivi-dossier');
+    Route::post('/repondre-complement', [SuiviComplementController::class, 'repondre'])
+        ->middleware('throttle:suivi-dossier');
 });
 
 /*
@@ -51,9 +55,9 @@ Route::prefix('suivi')->middleware('throttle:20,1')->group(function () {
 
 Route::prefix('admin')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:login');
 
-    Route::middleware('throttle:5,1')->group(function () {
+    Route::middleware('throttle:mot-de-passe')->group(function () {
         Route::post('/mot-de-passe/verifier-jeton', [MotDePasseController::class, 'verifierJeton']);
         Route::post('/mot-de-passe/definir', [MotDePasseController::class, 'definir']);
         Route::post('/mot-de-passe-oublie', [MotDePasseController::class, 'oublie']);
@@ -63,7 +67,7 @@ Route::prefix('admin')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::put('/mot-de-passe', [AuthController::class, 'changerMotDePasse'])
-            ->middleware('throttle:5,1');
+            ->middleware('throttle:changement-mot-de-passe');
 
         Route::get('/mes-notifications', [NotificationAppController::class, 'index']);
         Route::get('/mes-notifications/compteur', [NotificationAppController::class, 'compteur']);
@@ -90,7 +94,7 @@ Route::prefix('admin')->group(function () {
         Route::post('/doleances/{reference}/reponses', [DoleanceActionController::class, 'repondre'])
             ->middleware('permission:doleances.repondre');
         Route::get('/doleances/{reference}/mentionnables', [DoleanceActionController::class, 'mentionnables'])
-            ->middleware(['permission:doleances.notes', 'throttle:60,1']);
+            ->middleware(['permission:doleances.notes', 'throttle:mentions']);
         Route::post('/doleances/{reference}/notes', [DoleanceActionController::class, 'ajouterNote'])
             ->middleware('permission:doleances.notes');
         Route::put('/doleances/{reference}/notes/{id}', [DoleanceActionController::class, 'modifierNote'])
@@ -127,7 +131,7 @@ Route::prefix('admin')->group(function () {
             ->whereNumber('id');
 
         Route::get('/pieces-jointes/{id}/apercu', [PieceJointeController::class, 'apercu'])
-            ->middleware('throttle:60,1')
+            ->middleware('throttle:pieces-apercu')
             ->whereNumber('id');
         Route::get('/pieces-jointes/{id}/telecharger', [PieceJointeController::class, 'telecharger'])
             ->middleware('permission:pieces_jointes.telecharger')
