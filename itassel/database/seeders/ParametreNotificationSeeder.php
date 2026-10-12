@@ -16,7 +16,7 @@ class ParametreNotificationSeeder extends Seeder
         $lignes = config('itassel.notifications.defauts', $this->defauts());
 
         foreach ($lignes as $ligne) {
-            ParametreNotification::updateOrCreate(
+            ParametreNotification::firstOrCreate(
                 [
                     'evenement' => $ligne['evenement'],
                     'destinataire' => $ligne['destinataire'],

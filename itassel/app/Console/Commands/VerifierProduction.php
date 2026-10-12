@@ -50,6 +50,11 @@ class VerifierProduction extends Command
                 $this->motDePasseDemoRenseigne(),
                 'ITASSEL_DEMO_PASSWORD',
             ),
+            $this->ligne(
+                'Aucun compte démo actif',
+                $this->aucunCompteDemoActif(),
+                'Un compte demo.*@itassel.dz actif est interdit en production.',
+            ),
         ];
 
         $this->table(['Résultat', 'Contrôle', 'Détail'], $lignes);
@@ -95,5 +100,21 @@ class VerifierProduction extends Command
         }
 
         return is_string(config('itassel.demo_password')) && config('itassel.demo_password') !== '';
+    }
+
+    private function aucunCompteDemoActif(): bool
+    {
+        if (config('app.env') !== 'production') {
+            return true;
+        }
+
+        try {
+            return ! Utilisateur::query()
+                ->where('actif', true)
+                ->where('email', 'like', 'demo.%@itassel.dz')
+                ->exists();
+        } catch (Throwable) {
+            return true;
+        }
     }
 }

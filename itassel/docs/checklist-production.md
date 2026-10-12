@@ -20,9 +20,13 @@ Renseigner un `.env` à partir de `.env.example` (ne jamais versionner `.env`).
 
 ## Déploiement
 
+Le déploiement ne relance pas les seeders : ils ne doivent pas écraser les libellés, permissions ou comptes modifiés par les administrateurs.
+
 ```bash
-php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache
+php artisan migrate --force && php artisan config:cache && php artisan route:cache
 ```
+
+`php artisan db:seed --force` est réservé à l'installation initiale (une seule fois). Le super administrateur de production se crée avec `php artisan itassel:creer-super-admin`, pas avec les comptes `demo.*@itassel.dz`.
 
 ## Ne jamais livrer
 

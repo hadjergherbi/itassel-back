@@ -39,10 +39,26 @@ class NettoyerComptesTest extends TestCase
         $this->assertNull(Service::where('nom_service', 'Ressources humaines')->first()->id_responsable);
     }
 
+    public function test_le_seeder_ignore_les_comptes_demo_hors_local_sans_flag(): void
+    {
+        $demo = Utilisateur::where('email', 'demo.admin@itassel.dz')->firstOrFail();
+        $hash = $demo->mot_de_passe;
+        $demo->forceFill(['actif' => false])->save();
+
+        $this->app['env'] = 'production';
+        config(['itassel.demo_password' => null, 'itassel.seed_demo' => false]);
+
+        (new AdminSeeder)->run();
+
+        $frais = $demo->fresh();
+        $this->assertFalse($frais->actif);
+        $this->assertSame($hash, $frais->mot_de_passe);
+    }
+
     public function test_le_seeder_refuse_hors_local_si_le_mot_de_passe_est_absent(): void
     {
         $this->app['env'] = 'production';
-        config(['itassel.demo_password' => null]);
+        config(['itassel.demo_password' => null, 'itassel.seed_demo' => true]);
 
         $this->expectException(RuntimeException::class);
         (new AdminSeeder)->run();

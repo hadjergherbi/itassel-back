@@ -10,12 +10,19 @@ use RuntimeException;
 
 /**
  * Crée les deux comptes administrateurs de démonstration (super admin et admin du service Sport).
- * Nécessaire à l'installation pour pouvoir se connecter au back-office avant de créer les comptes métier.
+ * Uniquement en local/testing, ou si SEED_DEMO=true / db:seed --demo.
+ * Un compte déjà présent n'est ni réactivé, ni restauré, ni réinitialisé.
  */
 class AdminSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! $this->demoAutorise()) {
+            $this->command?->warn('Comptes de démonstration ignorés : réservés à local/testing, ou à --demo / SEED_DEMO=true.');
+
+            return;
+        }
+
         $hash = Hash::make($this->motDePasseDemo());
 
         $this->enregistrer([
@@ -43,9 +50,24 @@ class AdminSeeder extends Seeder
             'mot_de_passe' => $hash,
         ]);
 
-        $service->update(['id_responsable' => $admin->id_utilisateur]);
+        if ($admin && $service->id_responsable === null) {
+            $service->update(['id_responsable' => $admin->id_utilisateur]);
+        }
 
         $this->command?->info('Comptes de démonstration prêts.');
+    }
+
+    private function demoAutorise(): bool
+    {
+        if (app()->environment(['local', 'testing'])) {
+            return true;
+        }
+
+        if (config('itassel.seed_demo') === true) {
+            return true;
+        }
+
+        return in_array('--demo', $_SERVER['argv'] ?? [], true);
     }
 
     private function motDePasseDemo(): string
@@ -60,26 +82,29 @@ class AdminSeeder extends Seeder
         }
 
         throw new RuntimeException(
-            'ITASSEL_DEMO_PASSWORD est obligatoire hors des environnements local et testing.'
+            'ITASSEL_DEMO_PASSWORD est obligatoire pour créer les comptes de démonstration hors local et testing.'
         );
     }
 
-    private function enregistrer(array $donnees): Utilisateur
+    /**
+     * @param  array{email: string, nom: string, prenom: string, role: string, id_service: ?int, mot_de_passe: string}  $donnees
+     */
+    private function enregistrer(array $donnees): ?Utilisateur
     {
-        $utilisateur = Utilisateur::withTrashed()->firstOrNew(['email' => $donnees['email']]);
-
-        if ($utilisateur->trashed()) {
-            $utilisateur->restore();
+        if (Utilisateur::withTrashed()->where('email', $donnees['email'])->exists()) {
+            return null;
         }
 
+        $utilisateur = new Utilisateur;
         $utilisateur->forceFill([
             'nom' => $donnees['nom'],
             'prenom' => $donnees['prenom'],
+            'email' => $donnees['email'],
             'actif' => true,
             'id_service' => $donnees['id_service'],
             'role' => $donnees['role'],
             'mot_de_passe' => $donnees['mot_de_passe'],
-            'mot_de_passe_defini_le' => $utilisateur->mot_de_passe_defini_le ?? now(),
+            'mot_de_passe_defini_le' => now(),
         ])->save();
 
         return $utilisateur;

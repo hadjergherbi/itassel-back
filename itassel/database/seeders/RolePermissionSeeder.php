@@ -21,7 +21,7 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($roles as $role) {
-            Role::updateOrCreate(['code' => $role['code']], $role);
+            Role::firstOrCreate(['code' => $role['code']], $role);
         }
 
         $catalogue = config('itassel.permissions', []);
@@ -30,34 +30,29 @@ class RolePermissionSeeder extends Seeder
             $catalogue = $this->catalogueParDefaut();
         }
 
-        foreach ($catalogue as $code => $meta) {
-            Permission::updateOrCreate(
-                ['code' => $code],
-                [
-                    'libelle' => $meta['libelle'],
-                    'groupe' => $meta['groupe'],
-                ]
-            );
-        }
-
         $roles = Role::all()->keyBy('code');
-        $permissions = Permission::all()->keyBy('code');
 
         foreach ($catalogue as $code => $meta) {
-            $permission = $permissions[$code] ?? null;
-            if (! $permission) {
+            $permission = Permission::query()->where('code', $code)->first();
+            if ($permission) {
                 continue;
             }
-            $defaults = $meta['defaults'] ?? [];
-            foreach ($defaults as $roleCode) {
+
+            $permission = Permission::create([
+                'code' => $code,
+                'libelle' => $meta['libelle'],
+                'groupe' => $meta['groupe'],
+            ]);
+
+            foreach ($meta['defaults'] ?? [] as $roleCode) {
                 $role = $roles[$roleCode] ?? null;
                 if (! $role) {
                     continue;
                 }
-                DB::table('role_permission')->updateOrInsert(
-                    ['id_role' => $role->id_role, 'id_permission' => $permission->id_permission],
-                    []
-                );
+                DB::table('role_permission')->insertOrIgnore([
+                    'id_role' => $role->id_role,
+                    'id_permission' => $permission->id_permission,
+                ]);
             }
         }
     }

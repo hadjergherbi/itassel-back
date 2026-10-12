@@ -56,11 +56,16 @@ class ModeleMessageSeeder extends Seeder
             ],
         ];
 
+        if (ModeleMessage::query()->exists()) {
+            return;
+        }
+
         foreach ($modeles as $usage => [$titre, $contenu]) {
-            ModeleMessage::updateOrCreate(
-                ['titre' => $titre],
-                ['type_usage' => $usage, 'contenu' => $contenu],
-            );
+            ModeleMessage::create([
+                'titre' => $titre,
+                'type_usage' => $usage,
+                'contenu' => $contenu,
+            ]);
         }
 
         $this->command?->info(count($modeles).' modèles de message prêts.');

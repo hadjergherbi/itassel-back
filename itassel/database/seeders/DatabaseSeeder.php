@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
             ['cloturee', 'Clôturée', 'gris', false, 90],
         ];
         foreach ($statuts as [$code, $libelle, $couleur, $selectionnable, $ordre]) {
-            Statut::updateOrCreate(
+            Statut::firstOrCreate(
                 ['code' => $code],
                 [
                     'libelle' => $libelle,
@@ -49,34 +49,40 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        foreach (['Sport', 'Jeunesse', 'Ressources humaines'] as $nom) {
-            Service::firstOrCreate(['nom_service' => $nom]);
-        }
-        Service::firstOrCreate(['nom_service' => Service::TOUS_LES_DOMAINES]);
-
-        $natures = [
-            ['Réclamation', 'reclamation'],
-            ['Signalement', 'reclamation'],
-            ['Suggestion', 'demande'],
-            ["Demande d'information", 'demande'],
-        ];
-        foreach ($natures as [$libelle, $famille]) {
-            Nature::updateOrCreate(['libelle' => $libelle], ['famille' => $famille]);
+        // Référentiels identifiés par le libellé : on ne les recrée que sur une base vide,
+        // sinon un libellé renommé ou supprimé reviendrait au déploiement suivant.
+        if (! Service::query()->exists()) {
+            foreach (['Sport', 'Jeunesse', 'Ressources humaines', Service::TOUS_LES_DOMAINES] as $nom) {
+                Service::create(['nom_service' => $nom]);
+            }
         }
 
-        Nature::firstOrCreate(
-            ['libelle' => Nature::TOUTES_NATURES],
-            ['famille' => 'reclamation']
-        );
+        // La migration crée déjà « Toutes natures ». Le reste du catalogue n'est inséré
+        // que si aucune autre nature n'existe : un libellé renommé ou supprimé n'est pas recréé.
+        $naturesMetier = Nature::query()
+            ->whereRaw('LOWER(TRIM(libelle)) != ?', [mb_strtolower(Nature::TOUTES_NATURES)])
+            ->exists();
+        if (! $naturesMetier) {
+            $natures = [
+                ['Réclamation', 'reclamation'],
+                ['Signalement', 'reclamation'],
+                ['Suggestion', 'demande'],
+                ["Demande d'information", 'demande'],
+                [Nature::TOUTES_NATURES, 'reclamation'],
+            ];
+            foreach ($natures as [$libelle, $famille]) {
+                Nature::firstOrCreate(['libelle' => $libelle], ['famille' => $famille]);
+            }
+        }
 
-        foreach (Qualite::LIBELLES as $index => $libelle) {
-            Qualite::updateOrCreate(
-                ['libelle' => $libelle],
-                [
+        if (! Qualite::query()->exists()) {
+            foreach (Qualite::LIBELLES as $index => $libelle) {
+                Qualite::create([
+                    'libelle' => $libelle,
                     'selectionnable' => true,
                     'ordre' => ($index + 1) * 10,
-                ]
-            );
+                ]);
+            }
         }
 
         $this->call(AdminSeeder::class);

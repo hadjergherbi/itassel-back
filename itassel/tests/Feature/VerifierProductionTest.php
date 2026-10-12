@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use RuntimeException;
 use Tests\TestCase;
@@ -46,5 +47,19 @@ class VerifierProductionTest extends TestCase
         ]);
 
         $this->artisan('itassel:verifier-production')->assertFailed();
+    }
+
+    public function test_compte_demo_actif_en_production_est_signale(): void
+    {
+        $this->seed();
+        config([
+            'app.env' => 'production',
+            'app.debug' => false,
+        ]);
+
+        Artisan::call('itassel:verifier-production');
+        $sortie = Artisan::output();
+
+        $this->assertMatchesRegularExpression('/KO\s*\|\s*Aucun compte démo actif/', $sortie);
     }
 }

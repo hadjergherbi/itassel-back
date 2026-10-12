@@ -8,6 +8,9 @@ return [
 
     'demo_password' => env('ITASSEL_DEMO_PASSWORD'),
 
+    // true : autorise les comptes démo hors local/testing (php artisan db:seed --demo fait de même).
+    'seed_demo' => filter_var(env('SEED_DEMO', false), FILTER_VALIDATE_BOOLEAN),
+
     'demo_emails' => [
         'super' => 'demo.admin@itassel.dz',
         'service' => 'demo.sport@itassel.dz',
