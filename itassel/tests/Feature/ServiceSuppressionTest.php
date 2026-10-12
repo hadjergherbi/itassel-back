@@ -110,6 +110,45 @@ class ServiceSuppressionTest extends TestCase
         $this->assertNull(Utilisateur::withTrashed()->find($agent->id_utilisateur)->id_service);
     }
 
+    public function test_un_pivot_actif_bloque_la_suppression_meme_si_ce_n_est_pas_le_principal(): void
+    {
+        $secondaire = Service::factory()->create(['nom_service' => 'Secondaire bloquant']);
+        $admin = $this->adminService($this->serviceUsuel(), ['email' => 'pivot.actif@itassel.test']);
+        $admin->services()->syncWithoutDetaching([$secondaire->id_service]);
+
+        $this->connecter($this->superAdmin())
+            ->deleteJson("/api/admin/services/{$secondaire->id_service}")
+            ->assertStatus(409)
+            ->assertJson(['code' => 'service_utilisateurs']);
+
+        $this->assertNotNull(Service::find($secondaire->id_service));
+    }
+
+    public function test_la_suppression_reaffecte_le_principal_vers_un_autre_service(): void
+    {
+        $principal = Service::factory()->create(['nom_service' => 'Principal à retirer']);
+        $autre = Service::factory()->create(['nom_service' => 'Principal de repli']);
+        $agent = $this->adminService($principal, ['email' => 'repli@itassel.test']);
+        $agent->services()->syncWithoutDetaching([$autre->id_service]);
+        $agent->delete();
+
+        $this->connecter($this->superAdmin())
+            ->deleteJson("/api/admin/services/{$principal->id_service}")
+            ->assertOk();
+
+        $agent = Utilisateur::withTrashed()->find($agent->id_utilisateur);
+        $this->assertSame($autre->id_service, $agent->id_service);
+        $this->assertFalse(
+            DB::table('utilisateur_service')->where('id_service', $principal->id_service)->exists()
+        );
+        $this->assertTrue(
+            DB::table('utilisateur_service')
+                ->where('id_utilisateur', $agent->id_utilisateur)
+                ->where('id_service', $autre->id_service)
+                ->exists()
+        );
+    }
+
     public function test_un_service_cite_dans_une_reaffectation_est_conserve(): void
     {
         $cible = Service::factory()->create(['nom_service' => 'Cité en réaffectation']);

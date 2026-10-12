@@ -20,7 +20,10 @@ class ServiceSuppressionService
             return 'service_doleances';
         }
 
-        if (Utilisateur::where('id_service', $id)->exists()) {
+        if (Utilisateur::where(function ($q) use ($id) {
+            $q->where('id_service', $id)
+                ->orWhereHas('services', fn ($s) => $s->where('services.id_service', $id));
+        })->exists()) {
             return 'service_utilisateurs';
         }
 
@@ -41,9 +44,30 @@ class ServiceSuppressionService
         $nom = $service->nom_service;
 
         DB::transaction(function () use ($service) {
+            $id = (int) $service->id_service;
+            $idsUtilisateurs = DB::table('utilisateur_service')->where('id_service', $id)->pluck('id_utilisateur');
+
+            foreach ($idsUtilisateurs as $idUtilisateur) {
+                $utilisateur = Utilisateur::withTrashed()->find($idUtilisateur);
+                if (! $utilisateur || (int) $utilisateur->id_service !== $id) {
+                    continue;
+                }
+
+                $autre = DB::table('utilisateur_service')
+                    ->where('id_utilisateur', $idUtilisateur)
+                    ->where('id_service', '!=', $id)
+                    ->orderBy('id_service')
+                    ->value('id_service');
+
+                $utilisateur->id_service = $autre ? (int) $autre : null;
+                $utilisateur->save();
+            }
+
             Utilisateur::onlyTrashed()
-                ->where('id_service', $service->id_service)
+                ->where('id_service', $id)
                 ->update(['id_service' => null]);
+
+            DB::table('utilisateur_service')->where('id_service', $id)->delete();
 
             $service->id_responsable = null;
             $service->save();
