@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Complement;
+use App\Models\Historique;
 use App\Models\Nature;
+use App\Models\PieceJointe;
+use App\Models\Reponse;
 use App\Models\Statut;
 use App\Services\StatistiqueService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,7 +100,7 @@ class IssuesWorkflowTest extends TestCase
         }
     }
 
-    public function test_le_suivi_citoyen_expose_message_citoyen(): void
+    public function test_le_suivi_citoyen_n_expose_que_la_liste_blanche(): void
     {
         $doleance = $this->doleance(['statut' => Statut::RESOLUE]);
         $jeton = 'session-test';
@@ -105,8 +108,86 @@ class IssuesWorkflowTest extends TestCase
 
         $this->getJson('/api/suivi/dossier', ['X-Suivi-Token' => $jeton])
             ->assertOk()
-            ->assertJsonPath('statut.message_citoyen', 'Une réponse est disponible.')
-            ->assertJsonStructure(['organisme_competent']);
+            ->assertJsonPath('statut.code', Statut::RESOLUE)
+            ->assertJsonPath('statut.libelle', 'Résolue')
+            ->assertJsonMissingPath('statut.message_citoyen')
+            ->assertJsonMissingPath('organisme_competent')
+            ->assertJsonMissingPath('email');
+    }
+
+    public function test_le_suivi_citoyen_masque_les_cles_internes(): void
+    {
+        $admin = $this->superAdmin();
+        $initiale = $this->doleance();
+        $doleance = $this->doleance([
+            'statut' => Statut::INFORMATION_DEMANDEE,
+            'id_responsable' => $admin->id_utilisateur,
+            'id_doleance_initial' => $initiale->id_doleance,
+            'email' => 'citoyen@example.test',
+            'telephone' => '0551112233',
+        ]);
+        $statut = Statut::parCode(Statut::INFORMATION_DEMANDEE);
+        Historique::create([
+            'date_evenement' => now(),
+            'type_evenement' => 'changement_statut',
+            'detail' => 'Information demandée',
+            'visible_demandeur' => true,
+            'id_doleance' => $doleance->id_doleance,
+            'id_utilisateur' => $admin->id_utilisateur,
+            'id_statut_apres' => $statut->id_statut,
+        ]);
+        Reponse::create([
+            'contenu' => 'Réponse visible',
+            'date_publication' => now(),
+            'id_doleance' => $doleance->id_doleance,
+            'id_auteur' => $admin->id_utilisateur,
+        ]);
+        Complement::factory()->create([
+            'id_doleance' => $doleance->id_doleance,
+            'id_auteur' => $admin->id_utilisateur,
+            'etat' => 'en_attente',
+            'question' => 'Précisez.',
+        ]);
+
+        $jeton = 'session-fuite';
+        cache()->put("suivi:session:{$jeton}", $doleance->id_doleance, 600);
+
+        $corps = $this->getJson('/api/suivi/dossier', ['X-Suivi-Token' => $jeton])
+            ->assertOk()
+            ->assertJsonPath('reference', $doleance->reference)
+            ->assertJsonPath('historique.0.type_evenement', 'changement_statut')
+            ->assertJsonPath('reponses.0.contenu', 'Réponse visible')
+            ->assertJsonPath('complements.0.question', 'Précisez.')
+            ->json();
+
+        $this->assertClesAbsentes($corps, [
+            'id_responsable',
+            'id_service',
+            'email',
+            'telephone',
+            'id_utilisateur',
+            'id_auteur',
+            'id_doleance_initial',
+        ]);
+
+        $piece = new PieceJointe(['chemin' => 'prive/secret.pdf', 'nom_fichier' => 'secret.pdf']);
+        $this->assertArrayNotHasKey('chemin', $piece->toArray());
+    }
+
+    /**
+     * @param  array<string, mixed>|list<mixed>  $donnee
+     * @param  list<string>  $interdites
+     */
+    private function assertClesAbsentes(array $donnee, array $interdites): void
+    {
+        foreach ($donnee as $cle => $valeur) {
+            if (is_string($cle)) {
+                $this->assertNotContains($cle, $interdites, "Clé interdite présente : {$cle}");
+            }
+            if (is_array($valeur)) {
+                $this->assertClesAbsentes($valeur, $interdites);
+            }
+        }
     }
 
     public function test_reclassement_et_indicateurs(): void

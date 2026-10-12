@@ -149,18 +149,41 @@ class SuiviController extends Controller
         }
 
         $doleance = Doleance::with([
-            'statut', 'service',
-            // Statut après chaque événement, pour l'afficher dans la frise du demandeur.
+            'statut:id_statut,code,libelle',
             'historique' => fn ($q) => $q->where('visible_demandeur', true)
                 ->where('type_evenement', '!=', 'complement_annule_motif')
-                ->with('statutApres:id_statut,code,libelle,couleur'),
+                ->with('statutApres:id_statut,code,libelle'),
             'complements' => fn ($q) => $q->where('etat', 'en_attente'),
             'reponses',
         ])->findOrFail($idDoleance);
 
-        $doleance->complements->each->makeHidden(['motif_annulation']);
-
-        return response()->json($doleance);
+        return response()->json([
+            'reference' => $doleance->reference,
+            'statut' => [
+                'code' => $doleance->statut?->code,
+                'libelle' => $doleance->statut?->libelle,
+            ],
+            'historique' => $doleance->historique->map(fn ($evenement) => [
+                'type_evenement' => $evenement->type_evenement,
+                'detail' => $evenement->detail,
+                'statut_apres' => $evenement->statutApres ? [
+                    'code' => $evenement->statutApres->code,
+                    'libelle' => $evenement->statutApres->libelle,
+                ] : null,
+                'date_evenement' => $evenement->date_evenement,
+            ])->values(),
+            'reponses' => $doleance->reponses->map(fn ($reponse) => [
+                'contenu' => $reponse->contenu,
+                'date_publication' => $reponse->date_publication,
+            ])->values(),
+            'complements' => $doleance->complements->map(fn ($complement) => [
+                'id_complement' => $complement->id_complement,
+                'etat' => $complement->etat,
+                'piece_exigee' => (bool) $complement->piece_exigee,
+                'description_piece' => $complement->description_piece,
+                'question' => $complement->question,
+            ])->values(),
+        ]);
     }
 
     private function reponseDemandeCode(int $dureeValidite)

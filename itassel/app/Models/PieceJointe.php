@@ -18,6 +18,8 @@ class PieceJointe extends Model
         'id_doleance', 'id_complement',
     ];
 
+    protected $hidden = ['chemin'];
+
     public function doleance()
     {
         return $this->belongsTo(Doleance::class, 'id_doleance', 'id_doleance');
