@@ -30,6 +30,10 @@ php artisan migrate --force && php artisan db:seed --force && php artisan config
 - `storage/logs`
 - `storage/app/private`
 - `vendor`
+- `database/*.sqlite`
+- `dist`
+
+Ne jamais zipper `.env`, les logs, les bases sqlite, `vendor` ni `dist`.
 
 ## Session et cookies
 
@@ -52,6 +56,7 @@ php artisan migrate --force && php artisan db:seed --force && php artisan config
 - [ ] Droits limités à la base ITASSEL (`SELECT`, `INSERT`, `UPDATE`, `DELETE` — et `CREATE`/`ALTER` uniquement le temps des migrations)
 - [ ] `DB_PASSWORD` fort, distinct des autres services
 - [ ] Sauvegarde quotidienne de la base, testée par une restauration périodique
+- [ ] Les tests PHPUnit tournent sur MySQL (`itassel_test` uniquement, même moteur qu’en production). Copier `.env.testing.example` vers `.env.testing`, puis `composer test:db` et `composer test`. La base de développement n’est pas utilisée.
 
 ## Serveur PHP / Laravel
 
@@ -74,6 +79,7 @@ Les emails (sauf le renvoi manuel) partent par un job `EnvoyerEmailNotification`
 
 ## Secrets et messagerie
 
+- [ ] Faire tourner le mot de passe d'application SMTP (il a fuité dans une archive)
 - [ ] Rotation des secrets à chaque changement d’équipe ou incident : `APP_KEY` (invalide les cookies chiffrés), mot de passe d’application mail régénéré, `DB_PASSWORD`
 - [ ] `MAIL_PASSWORD` stocké uniquement dans l’environnement du serveur, jamais dans le dépôt
 - [ ] Vérifier qu’aucun `.env` de production n’est versionné (`.gitignore` contient `.env`)

@@ -37,4 +37,14 @@ class VerifierProductionTest extends TestCase
 
         $this->artisan('itassel:verifier-production')->assertFailed();
     }
+
+    public function test_environnement_local_fait_echouer_la_commande(): void
+    {
+        config([
+            'app.env' => 'local',
+            'app.debug' => false,
+        ]);
+
+        $this->artisan('itassel:verifier-production')->assertFailed();
+    }
 }

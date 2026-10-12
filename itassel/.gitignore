@@ -3,6 +3,7 @@
 .env
 .env.*
 !.env.example
+!.env.testing.example
 .env.backup
 .env.production
 .phpactor.json
@@ -11,6 +12,7 @@
 /.idea
 /.nova
 /.phpunit.cache
+.phpunit.cache
 /.vscode
 /.zed
 /auth.json
@@ -24,6 +26,7 @@
 /storage/fonts/installed-fonts.json
 /storage/logs
 /storage/logs/*
+storage/logs/*.log
 !/storage/logs/.gitignore
 /storage/app/private/*
 !/storage/app/private/.gitignore
@@ -32,6 +35,7 @@
 /storage/framework/views/*.php
 /vendor
 database/database.sqlite
+database/*.sqlite
 Homestead.json
 Homestead.yaml
 Thumbs.db

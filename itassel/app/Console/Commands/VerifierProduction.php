@@ -16,8 +16,13 @@ class VerifierProduction extends Command
     {
         $lignes = [
             $this->ligne(
+                'APP_ENV différent de local',
+                config('app.env') !== 'local',
+                'APP_ENV=local est interdit pour une mise en production.',
+            ),
+            $this->ligne(
                 'APP_DEBUG désactivé en production',
-                ! (config('app.env') === 'production' && config('app.debug')),
+                config('app.env') !== 'production' || ! config('app.debug'),
                 'APP_ENV=production exige APP_DEBUG=false.',
             ),
             $this->ligne(
