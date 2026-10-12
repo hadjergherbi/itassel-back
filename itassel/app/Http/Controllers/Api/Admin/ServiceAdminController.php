@@ -152,10 +152,11 @@ class ServiceAdminController extends Controller
 
     public function responsablesPossibles(Service $service)
     {
-        $utilisateurs = Utilisateur::where('id_service', $service->id_service)
+        $utilisateurs = Utilisateur::query()
             ->where('role', 'admin_service')
             ->where('actif', true)
             ->whereNotNull('mot_de_passe_defini_le')
+            ->whereHas('services', fn ($q) => $q->where('services.id_service', $service->id_service))
             ->orderBy('nom')
             ->get(['id_utilisateur', 'nom', 'prenom', 'email']);
 

@@ -109,14 +109,22 @@ class UtilisateurService
             throw new ConflitMetier('dernier_super_admin', 'Impossible de désactiver le dernier Super administrateur actif.');
         }
 
-        $serviceGere = Service::where('id_responsable', $cible->id_utilisateur)->first();
-        $serviceRef = $serviceGere ?? $cible->service;
-        if ($remplacant && $serviceRef) {
-            static::verifierRemplacant($remplacant, $serviceRef);
+        $servicesGeres = Service::where('id_responsable', $cible->id_utilisateur)->get();
+        if ($remplacant) {
+            $references = $servicesGeres->isNotEmpty()
+                ? $servicesGeres
+                : collect([$cible->service])->filter();
+            foreach ($references as $service) {
+                static::verifierRemplacant($remplacant, $service);
+            }
         }
 
-        $dossiersTransferes = DB::transaction(function () use ($cible, $acteur, $remplacant, $serviceGere) {
-            if ($serviceGere) {
+        if ($cible->role === 'admin_service') {
+            static::verifierAutreAdminParService($cible, $remplacant);
+        }
+
+        $dossiersTransferes = DB::transaction(function () use ($cible, $acteur, $remplacant, $servicesGeres) {
+            foreach ($servicesGeres as $serviceGere) {
                 $serviceGere->update(['id_responsable' => $remplacant?->id_utilisateur]);
             }
 
@@ -387,11 +395,36 @@ class UtilisateurService
             ->exists();
     }
 
+    private static function verifierAutreAdminParService(Utilisateur $cible, ?Utilisateur $remplacant): void
+    {
+        foreach ($cible->idsServices() as $idService) {
+            $autre = Utilisateur::query()
+                ->where('role', 'admin_service')
+                ->where('actif', true)
+                ->where('id_utilisateur', '!=', $cible->id_utilisateur)
+                ->whereHas('services', fn ($q) => $q->where('services.id_service', $idService))
+                ->exists();
+
+            if ($autre) {
+                continue;
+            }
+
+            if ($remplacant && $remplacant->gereLeService($idService)) {
+                continue;
+            }
+
+            $nom = Service::whereKey($idService)->value('nom_service') ?? (string) $idService;
+            throw ValidationException::withMessages([
+                'id_remplacant' => ["Le service {$nom} n'a pas d'autre administrateur. Désignez un remplaçant qui gère ce service."],
+            ]);
+        }
+    }
+
     private static function verifierRemplacant(Utilisateur $remplacant, Service $service): void
     {
         if (! $remplacant->actif
             || $remplacant->role !== 'admin_service'
-            || (int) $remplacant->id_service !== (int) $service->id_service
+            || ! $remplacant->gereLeService((int) $service->id_service)
             || $remplacant->mot_de_passe_defini_le === null
         ) {
             throw ValidationException::withMessages([
@@ -443,14 +476,15 @@ class UtilisateurService
 
     private static function remplacantsPossibles(Utilisateur $cible): array
     {
-        if (! $cible->id_service) {
+        $ids = $cible->idsServices();
+        if ($ids === []) {
             return [];
         }
 
         return Utilisateur::query()
             ->where('role', 'admin_service')
             ->where('actif', true)
-            ->where('id_service', $cible->id_service)
+            ->whereHas('services', fn ($q) => $q->whereIn('services.id_service', $ids))
             ->whereNotNull('mot_de_passe_defini_le')
             ->where('id_utilisateur', '!=', $cible->id_utilisateur)
             ->orderBy('nom')

@@ -24,7 +24,7 @@ class ServiceResponsableService
         if ($responsable) {
             if (! $responsable->actif
                 || $responsable->role !== 'admin_service'
-                || (int) $responsable->id_service !== (int) $service->id_service
+                || ! $responsable->gereLeService((int) $service->id_service)
                 || $responsable->mot_de_passe_defini_le === null
             ) {
                 throw ValidationException::withMessages([
