@@ -6,8 +6,11 @@ use App\Models\Doleance;
 use App\Models\Journal;
 use App\Models\PieceJointe;
 use App\Models\Service;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\ItasselHelpers;
 use Tests\TestCase;
@@ -110,6 +113,42 @@ class PieceJointeApercuTest extends TestCase
         $this->assertSame('application/pdf', $reponse->headers->get('Content-Type'));
     }
 
+    public function test_le_telechargement_encode_un_nom_arabe(): void
+    {
+        $piece = $this->pieceSurDisque(['nom_fichier' => 'وثيقة.pdf', 'type' => 'pdf']);
+
+        $this->connecter($this->superAdmin());
+        $disposition = (string) $this->get("/api/admin/pieces-jointes/{$piece->id_piece}/telecharger")
+            ->assertOk()
+            ->headers->get('Content-Disposition');
+
+        $this->assertStringContainsString('filename*=', $disposition);
+        $this->assertStringContainsString(rawurlencode('وثيقة.pdf'), $disposition);
+    }
+
+    public function test_un_fichier_stocke_est_supprime_si_la_transaction_echoue(): void
+    {
+        $doleance = $this->doleance();
+        $cheminTemp = sys_get_temp_dir().DIRECTORY_SEPARATOR.'itassel-pdf-'.uniqid('', true).'.pdf';
+        file_put_contents($cheminTemp, '%PDF-1.4 test');
+        $fichier = new UploadedFile($cheminTemp, 'justificatif.pdf', 'application/pdf', null, true);
+        $chemin = null;
+
+        try {
+            DB::transaction(function () use ($doleance, $fichier, &$chemin) {
+                $piece = \App\Services\PieceJointeService::enregistrer($fichier, $doleance, 'DEPOT_INITIAL');
+                $chemin = $piece->chemin;
+                throw new \RuntimeException('annulation');
+            });
+        } catch (\RuntimeException) {
+        }
+
+        @unlink($cheminTemp);
+        $this->assertNotNull($chemin);
+        $this->assertFalse(Storage::disk('local')->exists($chemin));
+        $this->assertSame(0, PieceJointe::count());
+    }
+
     public function test_deux_apercus_rapproches_n_ecrivent_qu_une_entree_de_journal(): void
     {
         $admin = $this->superAdmin();
@@ -128,6 +167,30 @@ class PieceJointeApercuTest extends TestCase
         $this->assertSame(Doleance::class, $lignes->first()->cible_type);
         $this->assertSame($piece->id_doleance, (int) $lignes->first()->cible_id);
         $this->assertSame('doleance', $lignes->first()->categorie);
+    }
+
+    public function test_origine_invalide_viole_ck_pj_origine(): void
+    {
+        $doleance = $this->doleance();
+
+        try {
+            DB::table('pieces_jointes')->insert([
+                'nom_fichier' => 'interdit.pdf',
+                'type' => 'pdf',
+                'taille' => 20,
+                'chemin' => 'pieces-jointes/interdit.pdf',
+                'origine' => 'INCONNUE',
+                'id_doleance' => $doleance->id_doleance,
+                'id_complement' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $this->fail('La contrainte ck_pj_origine aurait dû refuser cette origine.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('ck_pj_origine', $e->getMessage());
+        }
+
+        $this->assertSame(0, PieceJointe::where('nom_fichier', 'interdit.pdf')->count());
     }
 
     private function pieceSurDisque(array $attrs = []): PieceJointe

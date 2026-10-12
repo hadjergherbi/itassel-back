@@ -5,7 +5,10 @@ namespace App\Services;
 use App\Models\Doleance;
 use App\Models\PieceJointe;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class PieceJointeService
 {
@@ -33,6 +36,11 @@ class PieceJointeService
             return false;
         }
 
+        if ($extension === 'png') {
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
+        }
+
         $ok = match ($extension) {
             'jpg', 'jpeg' => imagejpeg($image, $chemin, 90),
             'png' => imagepng($image, $chemin),
@@ -55,9 +63,9 @@ class PieceJointeService
         string $origine,
         ?int $idComplement = null,
     ): PieceJointe {
-        $extension = strtolower($fichier->getClientOriginalExtension());
+        $extension = self::extensionReelle($fichier);
 
-        if (in_array($extension, ['jpg', 'jpeg', 'png'], true)
+        if (in_array($extension, ['jpg', 'png'], true)
             && ! self::reencoderImageSansExif($fichier, $extension)) {
             throw ValidationException::withMessages([
                 'piece_jointe' => ['Image invalide.'],
@@ -65,15 +73,33 @@ class PieceJointeService
         }
 
         $chemin = $fichier->store('pieces-jointes/'.$doleance->id_doleance, 'local');
+        DB::afterRollBack(function () use ($chemin) {
+            Storage::disk('local')->delete($chemin);
+        });
 
-        return PieceJointe::create([
-            'nom_fichier' => $fichier->getClientOriginalName(),
-            'type' => $extension === 'jpeg' ? 'jpg' : $extension,
-            'taille' => filesize($fichier->getRealPath()) ?: $fichier->getSize(),
-            'chemin' => $chemin,
-            'origine' => $origine,
-            'id_doleance' => $doleance->id_doleance,
-            'id_complement' => $idComplement,
-        ]);
+        try {
+            return PieceJointe::create([
+                'nom_fichier' => $fichier->getClientOriginalName(),
+                'type' => $extension,
+                'taille' => filesize($fichier->getRealPath()) ?: $fichier->getSize(),
+                'chemin' => $chemin,
+                'origine' => $origine,
+                'id_doleance' => $doleance->id_doleance,
+                'id_complement' => $idComplement,
+            ]);
+        } catch (Throwable $e) {
+            Storage::disk('local')->delete($chemin);
+            throw $e;
+        }
+    }
+
+    /**
+     * Extension déduite du type MIME réel, pas du nom envoyé par le client.
+     */
+    public static function extensionReelle(UploadedFile $fichier): string
+    {
+        $extension = strtolower((string) $fichier->guessExtension());
+
+        return $extension === 'jpeg' ? 'jpg' : $extension;
     }
 }

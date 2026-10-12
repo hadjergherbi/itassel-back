@@ -27,10 +27,15 @@ class PieceJointeController extends Controller
         }
 
         $nom = $this->nomFichierAssaini((string) $piece->nom_fichier);
+        $ascii = $this->nomFichierAscii($nom);
 
         return Storage::disk('local')->download($piece->chemin, $nom, [
             'Content-Type' => $this->typeMime($piece->type),
-            'Content-Disposition' => 'attachment; filename="'.$nom.'"',
+            'Content-Disposition' => HeaderUtils::makeDisposition(
+                HeaderUtils::DISPOSITION_ATTACHMENT,
+                $nom,
+                $ascii
+            ),
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

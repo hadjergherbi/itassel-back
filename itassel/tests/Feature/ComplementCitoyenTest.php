@@ -273,6 +273,64 @@ class ComplementCitoyenTest extends TestCase
         $this->assertStringNotContainsString('48.8566', $contenu);
     }
 
+    public function test_un_jpeg_nomme_pdf_est_traite_selon_son_mime(): void
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('Extension GD requise pour le ré-encodage EXIF.');
+        }
+
+        [$doleance, $complement] = $this->dossierAvecComplementEnAttente(pieceExigee: true);
+        $cheminExif = sys_get_temp_dir().DIRECTORY_SEPARATOR.'itassel-exif-'.uniqid('', true).'.pdf';
+        file_put_contents($cheminExif, $this->jpegAvecExif());
+
+        $this->avecSessionSuivi($doleance)
+            ->post('/api/suivi/repondre-complement', [
+                'message' => 'Voici la photo.',
+                'piece_jointe' => new UploadedFile($cheminExif, 'photo.pdf', 'application/pdf', null, true),
+            ], ['Accept' => 'application/json'])
+            ->assertOk();
+
+        @unlink($cheminExif);
+
+        $piece = PieceJointe::where('id_complement', $complement->id_complement)->first();
+        $this->assertSame('jpg', $piece->type);
+        $contenu = Storage::disk('local')->get($piece->chemin);
+        $this->assertStringNotContainsString('Exif', $contenu);
+    }
+
+    public function test_le_png_conserve_la_transparence(): void
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('Extension GD requise.');
+        }
+
+        [$doleance, $complement] = $this->dossierAvecComplementEnAttente(pieceExigee: true);
+        $chemin = sys_get_temp_dir().DIRECTORY_SEPARATOR.'itassel-alpha-'.uniqid('', true).'.png';
+        $source = imagecreatetruecolor(8, 8);
+        imagealphablending($source, false);
+        imagesavealpha($source, true);
+        $transparent = imagecolorallocatealpha($source, 0, 0, 0, 127);
+        imagefill($source, 0, 0, $transparent);
+        imagepng($source, $chemin);
+        imagedestroy($source);
+
+        $this->avecSessionSuivi($doleance)
+            ->post('/api/suivi/repondre-complement', [
+                'message' => 'Voici le scan.',
+                'piece_jointe' => new UploadedFile($chemin, 'scan.png', 'image/png', null, true),
+            ], ['Accept' => 'application/json'])
+            ->assertOk();
+
+        @unlink($chemin);
+
+        $piece = PieceJointe::where('id_complement', $complement->id_complement)->first();
+        $stocke = imagecreatefrompng(Storage::disk('local')->path($piece->chemin));
+        $couleur = imagecolorat($stocke, 0, 0);
+        imagedestroy($stocke);
+        $alpha = ($couleur >> 24) & 0x7F;
+        $this->assertSame(127, $alpha);
+    }
+
     public function test_fichier_zip_ou_trop_volumineux_renvoie_422(): void
     {
         [$doleance] = $this->dossierAvecComplementEnAttente(pieceExigee: true);

@@ -12,7 +12,6 @@ use App\Services\PieceJointeService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class SuiviComplementController extends Controller
 {
@@ -66,15 +65,6 @@ class SuiviComplementController extends Controller
         }
 
         $fichier = $request->file('piece_jointe');
-        if ($fichier instanceof UploadedFile) {
-            $extension = strtolower($fichier->getClientOriginalExtension());
-            if (in_array($extension, ['jpg', 'jpeg', 'png'], true)
-                && ! PieceJointeService::reencoderImageSansExif($fichier, $extension)) {
-                throw ValidationException::withMessages([
-                    'piece_jointe' => ['Image invalide.'],
-                ]);
-            }
-        }
 
         $evenement = DB::transaction(function () use ($complement, $doleance, $data, $fichier) {
             $complement->update([
