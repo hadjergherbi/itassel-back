@@ -1,6 +1,6 @@
 # API administrateur de service
 
-Toutes les routes ci-dessous sont préfixées par `/api/admin`, authentifiées (`Authorization: Bearer`) et filtrées par `Acces::doleancesVisibles` : un administrateur de service ne voit que les doléances de son service. Le Super administrateur conserve la vue globale.
+Toutes les routes ci-dessous sont préfixées par `/api/admin`, authentifiées (`Authorization: Bearer`) et filtrées par `Acces::doleancesVisibles`. Un administrateur de service voit les doléances de **chacun des services** qui lui sont rattachés (table `utilisateur_service`), plus les dossiers « Toutes natures » et « Tous les domaines ». Le Super administrateur conserve la vue globale. Le détail du rattachement est dans [utilisateurs-services.md](utilisateurs-services.md).
 
 ## GET `/tableau-de-bord`
 
