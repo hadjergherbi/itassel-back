@@ -7,6 +7,7 @@ use App\Models\Doleance;
 use App\Models\NoteInterne;
 use App\Models\NotificationApp;
 use App\Models\Utilisateur;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -20,10 +21,24 @@ class NoteInterneService
 
     public static function mentionnables(Doleance $doleance, Utilisateur $acteur, string $recherche = ''): Collection
     {
+        return static::requeteMentionnables($doleance, $acteur, $recherche)
+            ->with('service')
+            ->limit(8)
+            ->get();
+    }
+
+    public static function idsMentionnables(Doleance $doleance, Utilisateur $acteur): array
+    {
+        return static::requeteMentionnables($doleance, $acteur)
+            ->pluck('id_utilisateur')
+            ->all();
+    }
+
+    private static function requeteMentionnables(Doleance $doleance, Utilisateur $acteur, string $recherche = ''): Builder
+    {
         $recherche = mb_strtolower(trim($recherche));
 
         return Utilisateur::query()
-            ->with('service')
             ->where('actif', true)
             ->where('id_utilisateur', '!=', $acteur->id_utilisateur)
             ->where(function ($q) use ($doleance) {
@@ -41,14 +56,7 @@ class NoteInterneService
                 });
             })
             ->orderBy('nom')
-            ->orderBy('prenom')
-            ->limit(8)
-            ->get();
-    }
-
-    public static function idsMentionnables(Doleance $doleance, Utilisateur $acteur): array
-    {
-        return static::mentionnables($doleance, $acteur)->pluck('id_utilisateur')->all();
+            ->orderBy('prenom');
     }
 
     public static function validerMentions(Doleance $doleance, Utilisateur $acteur, array $ids): void

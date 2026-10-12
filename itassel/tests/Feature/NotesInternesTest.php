@@ -79,6 +79,34 @@ class NotesInternesTest extends TestCase
             ->assertStatus(404);
     }
 
+    public function test_la_dixieme_personne_eligible_peut_etre_mentionnee(): void
+    {
+        $service = $this->serviceUsuel();
+        $auteur = $this->adminService($service, ['nom' => 'Auteur', 'prenom' => 'Note']);
+        $doleance = $this->doleance(['id_service' => $service->id_service]);
+        $dixieme = null;
+        for ($i = 1; $i <= 10; $i++) {
+            $dixieme = $this->adminService($service, [
+                'nom' => 'Zmention',
+                'prenom' => sprintf('P%02d', $i),
+            ]);
+        }
+
+        $this->connecter($auteur);
+        $liste = $this->getJson("/api/admin/doleances/{$doleance->reference}/mentionnables")
+            ->assertOk()
+            ->json();
+
+        $this->assertCount(8, $liste);
+        $this->assertNotContains($dixieme->id_utilisateur, collect($liste)->pluck('id_utilisateur')->all());
+
+        $this->postJson("/api/admin/doleances/{$doleance->reference}/notes", [
+            'contenu' => 'Mention du dixième collègue.',
+            'mentions' => [$dixieme->id_utilisateur],
+        ])->assertCreated()
+            ->assertJsonPath('note.mentions.0.id_utilisateur', $dixieme->id_utilisateur);
+    }
+
     public function test_creation_avec_mention_valide_et_invalide(): void
     {
         $service = Service::first();
