@@ -15,14 +15,11 @@ use RuntimeException;
 class ComplementService
 {
     /**
-     * Un administrateur demande un complément d'information au demandeur :
-     * - crée le complément (en attente),
-     * - passe le dossier au statut « Information demandée »,
-     * - ajoute l'événement à l'historique (visible du demandeur),
-     * - envoie l'email au demandeur (tracé dans notifications_itassel).
-     *
-     * Utilisé par la commande de test itassel:demander-complement, et à
-     * réutiliser tel quel dans le futur contrôleur du back-office.
+     * Un administrateur demande un complément d'information au demandeur.
+     * Le contrôle « déjà en attente » est verrouillé dans la transaction
+     * (lockForUpdate) pour éviter deux demandes concurrentes. Ensuite :
+     * complément en attente, statut « Information demandée », historique
+     * visible du demandeur, puis email tracé dans notifications_itassel.
      */
     public static function demander(
         Doleance $doleance,
@@ -31,21 +28,22 @@ class ComplementService
         ?string $descriptionPiece = null,
         array $options = [],
     ): Complement {
-        $dejaEnAttente = Complement::where('id_doleance', $doleance->id_doleance)
-            ->where('etat', 'en_attente')
-            ->exists();
-
-        if ($dejaEnAttente) {
-            throw new RuntimeException(
-                'Une demande de complément est déjà en attente pour ce dossier : '
-                .'le demandeur doit y répondre avant une nouvelle demande.'
-            );
-        }
-
         $statutInfo = Statut::parCode(Statut::INFORMATION_DEMANDEE);
         $descriptionPiece = trim((string) $descriptionPiece) ?: null;
 
         [$complement, $evenement] = DB::transaction(function () use ($doleance, $auteur, $question, $descriptionPiece, $statutInfo) {
+            $dejaEnAttente = Complement::where('id_doleance', $doleance->id_doleance)
+                ->where('etat', 'en_attente')
+                ->lockForUpdate()
+                ->exists();
+
+            if ($dejaEnAttente) {
+                throw new RuntimeException(
+                    'Une demande de complément est déjà en attente pour ce dossier : '
+                    .'le demandeur doit y répondre avant une nouvelle demande.'
+                );
+            }
+
             $statutAvant = $doleance->id_statut;
 
             $complement = Complement::create([

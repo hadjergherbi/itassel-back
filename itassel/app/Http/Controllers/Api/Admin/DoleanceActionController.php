@@ -411,19 +411,21 @@ class DoleanceActionController extends Controller
             return $this->erreur('question', 'Ce dossier est terminé : aucune information ne peut plus être demandée.');
         }
 
-        $miseAJour = [];
-        $this->prendreEnCharge($doleance, $utilisateur, $miseAJour);
-        if ($miseAJour) {
-            $doleance->update($miseAJour);
-        }
-
         try {
-            $complement = ComplementService::demander(
-                $doleance,
-                $utilisateur,
-                $data['question'],
-                $data['description_piece'] ?? null,
-            );
+            $complement = DB::transaction(function () use ($doleance, $utilisateur, $data) {
+                $miseAJour = [];
+                $this->prendreEnCharge($doleance, $utilisateur, $miseAJour);
+                if ($miseAJour) {
+                    $doleance->update($miseAJour);
+                }
+
+                return ComplementService::demander(
+                    $doleance,
+                    $utilisateur,
+                    $data['question'],
+                    $data['description_piece'] ?? null,
+                );
+            });
         } catch (RuntimeException $e) {
             return $this->erreur('question', $e->getMessage());
         }
@@ -517,20 +519,22 @@ class DoleanceActionController extends Controller
         bool $notifierResponsable,
         Statut $nouveau,
     ) {
-        $miseAJour = [];
-        $this->prendreEnCharge($doleance, $utilisateur, $miseAJour);
-        if ($miseAJour) {
-            $doleance->update($miseAJour);
-        }
-
         try {
-            ComplementService::demander(
-                $doleance,
-                $utilisateur,
-                $question,
-                $descriptionPiece,
-                ['notifier_responsable' => $notifierResponsable],
-            );
+            DB::transaction(function () use ($doleance, $utilisateur, $question, $descriptionPiece, $notifierResponsable) {
+                $miseAJour = [];
+                $this->prendreEnCharge($doleance, $utilisateur, $miseAJour);
+                if ($miseAJour) {
+                    $doleance->update($miseAJour);
+                }
+
+                ComplementService::demander(
+                    $doleance,
+                    $utilisateur,
+                    $question,
+                    $descriptionPiece,
+                    ['notifier_responsable' => $notifierResponsable],
+                );
+            });
         } catch (RuntimeException $e) {
             return $this->erreur('question', $e->getMessage());
         }

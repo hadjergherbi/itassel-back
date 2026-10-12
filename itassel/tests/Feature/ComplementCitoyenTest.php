@@ -81,6 +81,34 @@ class ComplementCitoyenTest extends TestCase
         $this->assertSame('en_attente', Complement::where('id_doleance', $doleance->id_doleance)->value('etat'));
     }
 
+    public function test_echec_du_complement_laisse_le_statut_inchange(): void
+    {
+        $admin = $this->adminService();
+        $this->connecter($admin);
+        $doleance = $this->doleance([
+            'statut' => Statut::NOUVELLE,
+            'id_service' => $admin->id_service,
+            'id_responsable' => null,
+        ]);
+        Complement::create([
+            'question' => 'Déjà posée',
+            'piece_exigee' => false,
+            'etat' => 'en_attente',
+            'date_demande' => now(),
+            'id_doleance' => $doleance->id_doleance,
+            'id_auteur' => $admin->id_utilisateur,
+        ]);
+
+        $this->postJson("/api/admin/doleances/{$doleance->reference}/complements", [
+            'question' => 'Encore une question ?',
+        ])->assertUnprocessable();
+
+        $doleance->refresh();
+        $this->assertSame(Statut::NOUVELLE, $doleance->statut->code);
+        $this->assertNull($doleance->id_responsable);
+        $this->assertSame(1, Complement::where('id_doleance', $doleance->id_doleance)->count());
+    }
+
     public function test_en_cours_vers_information_demandee(): void
     {
         $admin = $this->adminService();
