@@ -25,7 +25,7 @@ class UtilisateurAdminController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $query = Utilisateur::with('service')
+        $query = Utilisateur::with(['service', 'services'])
             ->withExists('servicesResponsable as est_responsable')
             ->orderBy('nom');
 
@@ -33,7 +33,7 @@ class UtilisateurAdminController extends Controller
             $query->where('role', $data['role']);
         }
         if (! empty($data['service'])) {
-            $query->where('id_service', $data['service']);
+            $query->whereHas('services', fn ($q) => $q->where('services.id_service', $data['service']));
         }
         if (array_key_exists('actif', $data) && $data['actif'] !== null) {
             $query->where('actif', $request->boolean('actif'));
@@ -70,7 +70,7 @@ class UtilisateurAdminController extends Controller
 
     public function show(Utilisateur $utilisateur)
     {
-        return response()->json($this->detail($utilisateur->load('service')));
+        return response()->json($this->detail($utilisateur->load(['service', 'services'])));
     }
 
     public function update(Request $request, Utilisateur $utilisateur)
@@ -191,6 +191,7 @@ class UtilisateurAdminController extends Controller
             'service' => $u->service
                 ? ['id_service' => $u->service->id_service, 'nom_service' => $u->service->nom_service]
                 : 'Tous les services',
+            'services' => $u->servicesPourApi(),
             'actif' => $u->actif,
             'etat_compte' => $u->etatCompte(),
             'derniere_connexion' => $u->derniere_connexion,

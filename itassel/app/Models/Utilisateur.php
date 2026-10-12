@@ -100,6 +100,28 @@ class Utilisateur extends Authenticatable
     }
 
     /**
+     * @return list<array{id_service: int, nom_service: string, principal: bool}>
+     */
+    public function servicesPourApi(): array
+    {
+        $this->loadMissing('services');
+        $principal = $this->id_service ? (int) $this->id_service : null;
+
+        return $this->services
+            ->sortBy(fn (Service $service) => [
+                $principal !== null && (int) $service->id_service === $principal ? 0 : 1,
+                $service->nom_service,
+            ])
+            ->map(fn (Service $service) => [
+                'id_service' => $service->id_service,
+                'nom_service' => $service->nom_service,
+                'principal' => $principal !== null && (int) $service->id_service === $principal,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Invariant : un admin de service a son service principal dans le pivot ;
      * un super administrateur n'a aucun rattachement.
      */

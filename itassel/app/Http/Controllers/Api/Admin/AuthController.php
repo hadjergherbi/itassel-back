@@ -219,6 +219,7 @@ class AuthController extends Controller
                     'nom_service' => $utilisateur->service->nom_service,
                 ]
                 : null,
+            'services' => $utilisateur->servicesPourApi(),
         ];
     }
 }
