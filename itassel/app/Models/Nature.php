@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Libelle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,8 +16,7 @@ class Nature extends Model
 
     public static function estToutesNatures(?string $libelle): bool
     {
-        return is_string($libelle)
-            && mb_strtolower(trim($libelle)) === mb_strtolower(self::TOUTES_NATURES);
+        return Libelle::equivalents($libelle, (string) config('itassel.systeme.nature', self::TOUTES_NATURES));
     }
 
     protected $fillable = ['libelle', 'famille'];

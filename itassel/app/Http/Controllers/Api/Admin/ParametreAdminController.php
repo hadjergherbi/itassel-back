@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Exceptions\ConflitMetier;
 use App\Http\Controllers\Controller;
 use App\Models\ModeleMessage;
 use App\Models\Nature;
@@ -21,6 +22,10 @@ class ParametreAdminController extends Controller
 
     public function creerNature(Request $request)
     {
+        if (Nature::estToutesNatures($request->input('libelle'))) {
+            throw new ConflitMetier('enregistrement_systeme', 'Ce libellé est réservé à un enregistrement système.');
+        }
+
         $data = $request->validate([
             'libelle' => ['required', 'string', 'max:80', 'unique:natures,libelle'],
             'famille' => ['required', 'in:reclamation,demande'],
@@ -38,6 +43,10 @@ class ParametreAdminController extends Controller
             'libelle' => ['sometimes', 'string', 'max:80', Rule::unique('natures', 'libelle')->ignore($nature->id_nature, 'id_nature')],
             'famille' => ['sometimes', 'in:reclamation,demande'],
         ]);
+
+        if (isset($data['libelle']) && Nature::estToutesNatures($nature->libelle) && $data['libelle'] !== $nature->libelle) {
+            throw new ConflitMetier('enregistrement_systeme', 'Cet enregistrement système ne peut pas être renommé.');
+        }
 
         if (isset($data['famille']) && $data['famille'] !== $nature->famille) {
             $restreintes = collect(config('itassel.issues', []))
@@ -64,6 +73,10 @@ class ParametreAdminController extends Controller
 
     public function supprimerNature(Request $request, Nature $nature)
     {
+        if (Nature::estToutesNatures($nature->libelle)) {
+            throw new ConflitMetier('enregistrement_systeme', 'Cet enregistrement système ne peut pas être supprimé.');
+        }
+
         if ($nature->doleances()->exists()) {
             return response()->json([
                 'message' => 'Cette nature est utilisée par des doléances.',

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Libelle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
@@ -18,8 +19,7 @@ class Service extends Model
 
     public static function estTousLesDomaines(?string $nom): bool
     {
-        return is_string($nom)
-            && mb_strtolower(trim($nom)) === mb_strtolower(self::TOUS_LES_DOMAINES);
+        return Libelle::equivalents($nom, (string) config('itassel.systeme.service', self::TOUS_LES_DOMAINES));
     }
 
     public function scopeAssignables($query)

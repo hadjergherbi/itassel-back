@@ -67,6 +67,10 @@ class ServiceAdminController extends Controller
 
     public function store(Request $request)
     {
+        if (Service::estTousLesDomaines($request->input('nom_service'))) {
+            throw new ConflitMetier('enregistrement_systeme', 'Ce libellé est réservé à un enregistrement système.');
+        }
+
         $data = $request->validate([
             'nom_service' => ['required', 'string', 'max:120', 'unique:services,nom_service'],
         ]);
@@ -86,6 +90,10 @@ class ServiceAdminController extends Controller
             ], 403);
         }
 
+        if (Service::estTousLesDomaines($service->nom_service)) {
+            throw new ConflitMetier('enregistrement_systeme', 'Cet enregistrement système ne peut pas être supprimé.');
+        }
+
         try {
             ServiceSuppressionService::supprimer($service, $request->user(), $request);
         } catch (ConflitMetier $e) {
@@ -100,6 +108,10 @@ class ServiceAdminController extends Controller
         $data = $request->validate([
             'nom_service' => ['required', 'string', 'max:120', Rule::unique('services', 'nom_service')->ignore($service->id_service, 'id_service')],
         ]);
+
+        if (Service::estTousLesDomaines($service->nom_service) && $data['nom_service'] !== $service->nom_service) {
+            throw new ConflitMetier('enregistrement_systeme', 'Cet enregistrement système ne peut pas être renommé.');
+        }
 
         $service->update($data);
         JournalService::action($request, $request->user(), 'modification_service', $service->nom_service, $service);

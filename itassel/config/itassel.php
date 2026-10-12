@@ -217,4 +217,9 @@ return [
         'max_mentions' => 5,
     ],
 
+    'systeme' => [
+        'service' => 'Tous les domaines',
+        'nature' => 'Toutes natures',
+    ],
+
 ];
