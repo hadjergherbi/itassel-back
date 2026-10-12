@@ -24,6 +24,8 @@ class ReaffectationAdminController extends Controller
             'etat' => ['nullable', 'string', 'in:en_attente,acceptee,refusee,annulee,sans_suite'],
         ]);
 
+        $utilisateur = $request->user();
+
         $query = Reaffectation::with([
             'doleance:id_doleance,reference,id_service,id_statut',
             'demandeur:id_utilisateur,nom,prenom',
@@ -33,6 +35,10 @@ class ReaffectationAdminController extends Controller
 
         if (! empty($data['etat'])) {
             $query->where('etat', $data['etat']);
+        }
+
+        if (! $utilisateur->estSuperAdmin()) {
+            $query->whereIn('id_service_propose', $utilisateur->idsServices());
         }
 
         return response()->json(
@@ -74,6 +80,14 @@ class ReaffectationAdminController extends Controller
 
         if ($deja) {
             return $this->conflit('Une demande de réaffectation est déjà en attente.', 'demande_en_attente');
+        }
+
+        if (! empty($data['id_service_propose'])
+            && (int) $data['id_service_propose'] === (int) $doleance->id_service) {
+            return response()->json([
+                'message' => 'Le service de destination doit être différent du service actuel.',
+                'errors' => ['id_service_propose' => ['Le service de destination doit être différent du service actuel.']],
+            ], 422);
         }
 
         [$demande, $evenement] = DB::transaction(function () use ($doleance, $utilisateur, $data) {
@@ -197,6 +211,12 @@ class ReaffectationAdminController extends Controller
             return $this->conflit('Cette demande n\'est plus en attente.', ReaffectationService::codeConflitEtat($demande->etat));
         }
 
+        if (! $this->decidePourLeService($utilisateur, $demande->id_service_propose)) {
+            return response()->json([
+                'message' => 'Seul un administrateur du service destinataire peut refuser cette demande.',
+            ], 403);
+        }
+
         $evenement = DB::transaction(function () use ($demande, $utilisateur, $data) {
             $demande->update([
                 'etat' => 'refusee',
@@ -273,6 +293,15 @@ class ReaffectationAdminController extends Controller
                 'message' => 'Le service de destination doit être différent du service actuel.',
                 'errors' => ['id_service_destination' => ['Le service de destination doit être différent du service actuel.']],
             ], 422);
+        }
+
+        if (! $utilisateur->estSuperAdmin() && (
+            ! $this->decidePourLeService($utilisateur, $demande->id_service_propose)
+            || (int) $destination->id_service !== (int) $demande->id_service_propose
+        )) {
+            return response()->json([
+                'message' => 'Seul un administrateur du service destinataire peut accepter cette demande.',
+            ], 403);
         }
 
         $motif = isset($data['motif']) ? trim((string) $data['motif']) : (string) $demande->motif;
@@ -385,6 +414,8 @@ class ReaffectationAdminController extends Controller
             }
 
             ReaffectationService::appliquerAuDossier($doleance, $destination);
+            $decideur->oublierIdsServices();
+            $demande?->demandeur?->oublierIdsServices();
 
             $lignes = ["Réaffectée : {$nomOrigine} → {$destination->nom_service}"];
             $motif = trim((string) $motifDirect);
@@ -456,6 +487,15 @@ class ReaffectationAdminController extends Controller
             ->with('statut')
             ->where('reference', strtoupper($reference))
             ->first();
+    }
+
+    private function decidePourLeService(Utilisateur $utilisateur, mixed $idService): bool
+    {
+        if ($utilisateur->estSuperAdmin()) {
+            return true;
+        }
+
+        return $idService !== null && $utilisateur->gereLeService((int) $idService);
     }
 
     private function introuvable()

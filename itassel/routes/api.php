@@ -120,14 +120,14 @@ Route::prefix('admin')->group(function () {
             ->whereNumber('id');
 
         Route::get('/reaffectations', [ReaffectationAdminController::class, 'index'])
-            ->middleware('permission:reaffectations.decider');
+            ->middleware('permission:reaffectations.decider,reaffectations.demander');
         Route::post('/reaffectations/{id}/annuler', [ReaffectationAdminController::class, 'annuler'])
             ->whereNumber('id');
         Route::post('/reaffectations/{id}/refuser', [ReaffectationAdminController::class, 'refuser'])
-            ->middleware('permission:reaffectations.decider')
+            ->middleware('permission:reaffectations.decider,reaffectations.demander')
             ->whereNumber('id');
         Route::post('/reaffectations/{id}/accepter', [ReaffectationAdminController::class, 'accepter'])
-            ->middleware('permission:reaffectations.decider')
+            ->middleware('permission:reaffectations.decider,reaffectations.demander')
             ->whereNumber('id');
 
         Route::get('/pieces-jointes/{id}/apercu', [PieceJointeController::class, 'apercu'])

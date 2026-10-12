@@ -177,7 +177,7 @@ class NotificationDispatcher
             'admins_service' => Utilisateur::query()
                 ->where('role', 'admin_service')
                 ->where('actif', true)
-                ->where('id_service', $doleance->id_service)
+                ->whereHas('services', fn ($q) => $q->where('services.id_service', $doleance->id_service))
                 ->get(),
             'super_admins' => Utilisateur::query()
                 ->where('role', 'super_admin')

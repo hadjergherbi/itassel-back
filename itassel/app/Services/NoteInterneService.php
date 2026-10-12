@@ -45,7 +45,7 @@ class NoteInterneService
                 $q->where('role', 'super_admin')
                     ->orWhere(function ($q) use ($doleance) {
                         $q->where('role', 'admin_service')
-                            ->where('id_service', $doleance->id_service);
+                            ->whereHas('services', fn ($s) => $s->where('services.id_service', $doleance->id_service));
                     });
             })
             ->when($recherche !== '', function ($q) use ($recherche) {
