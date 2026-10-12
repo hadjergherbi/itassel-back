@@ -47,6 +47,12 @@ class Service extends Model
         return $this->hasMany(Utilisateur::class, 'id_service', 'id_service');
     }
 
+    public function administrateurs()
+    {
+        return $this->belongsToMany(Utilisateur::class, 'utilisateur_service', 'id_service', 'id_utilisateur')
+            ->withPivot('created_at');
+    }
+
     public function doleances()
     {
         return $this->hasMany(Doleance::class, 'id_service', 'id_service');

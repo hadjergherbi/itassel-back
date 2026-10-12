@@ -33,6 +33,8 @@ class UtilisateurFactory extends Factory
             if (! $utilisateur->role) {
                 $utilisateur->role = 'admin_service';
             }
+        })->afterCreating(function (Utilisateur $utilisateur) {
+            $utilisateur->assurerServicePrincipalDansPivot();
         });
     }
 

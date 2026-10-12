@@ -91,7 +91,12 @@ class AdminSeeder extends Seeder
      */
     private function enregistrer(array $donnees): ?Utilisateur
     {
-        if (Utilisateur::withTrashed()->where('email', $donnees['email'])->exists()) {
+        $existant = Utilisateur::withTrashed()->where('email', $donnees['email'])->first();
+        if ($existant) {
+            if ($existant->role === 'admin_service' && $existant->id_service) {
+                $existant->services()->syncWithoutDetaching([(int) $existant->id_service]);
+            }
+
             return null;
         }
 

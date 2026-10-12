@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
 class Utilisateur extends Authenticatable
@@ -14,6 +16,9 @@ class Utilisateur extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     public const DELETED_AT = 'supprime_le';
+
+    /** @var list<int>|null */
+    private ?array $idsServicesMemo = null;
 
     protected $table = 'utilisateurs';
 
@@ -41,9 +46,93 @@ class Utilisateur extends Authenticatable
         return $this->mot_de_passe;
     }
 
+    protected static function booted(): void
+    {
+        static::saved(function (Utilisateur $utilisateur) {
+            $utilisateur->assurerServicePrincipalDansPivot();
+        });
+    }
+
     public function service()
     {
         return $this->belongsTo(Service::class, 'id_service', 'id_service');
+    }
+
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'utilisateur_service', 'id_utilisateur', 'id_service')
+            ->withPivot('created_at');
+    }
+
+    /**
+     * Identifiants des services gérés, principal compris. Mémorisé pour la requête en cours.
+     *
+     * @return list<int>
+     */
+    public function idsServices(): array
+    {
+        if ($this->idsServicesMemo !== null) {
+            return $this->idsServicesMemo;
+        }
+
+        $ids = $this->relationLoaded('services')
+            ? $this->services->pluck('id_service')->all()
+            : $this->services()->pluck('services.id_service')->all();
+
+        $ids = array_map('intval', $ids);
+
+        if ($this->id_service) {
+            $ids[] = (int) $this->id_service;
+        }
+
+        return $this->idsServicesMemo = array_values(array_unique($ids));
+    }
+
+    public function gereLeService(int $id): bool
+    {
+        return in_array($id, $this->idsServices(), true);
+    }
+
+    public function oublierIdsServices(): void
+    {
+        $this->idsServicesMemo = null;
+        $this->unsetRelation('services');
+    }
+
+    /**
+     * Invariant : un admin de service a son service principal dans le pivot ;
+     * un super administrateur n'a aucun rattachement.
+     */
+    public function assurerServicePrincipalDansPivot(): void
+    {
+        if ($this->role === 'super_admin') {
+            $this->services()->detach(null, false);
+            $this->oublierIdsServices();
+
+            return;
+        }
+
+        if ($this->role === 'admin_service' && $this->id_service) {
+            $deja = $this->services()->where('services.id_service', $this->id_service)->exists();
+            if (! $deja) {
+                $this->services()->attach($this->id_service, ['created_at' => now()], false);
+            }
+        }
+
+        $this->oublierIdsServices();
+    }
+
+    public static function remplirPivotDepuisPrincipal(): void
+    {
+        $maintenant = now();
+
+        foreach (DB::table('utilisateurs')->where('role', 'admin_service')->whereNotNull('id_service')->get(['id_utilisateur', 'id_service']) as $ligne) {
+            DB::table('utilisateur_service')->insertOrIgnore([
+                'id_utilisateur' => $ligne->id_utilisateur,
+                'id_service' => $ligne->id_service,
+                'created_at' => $maintenant,
+            ]);
+        }
     }
 
     public function roleModele()
