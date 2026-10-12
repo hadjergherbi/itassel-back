@@ -165,4 +165,14 @@ class AuthCompteTest extends TestCase
             return ! str_contains($html, 'Itassel2026!') && ! str_contains(strtolower($html), 'mot_de_passe');
         });
     }
+
+    public function test_route_protegee_sans_accept_json_renvoie_401(): void
+    {
+        $reponse = $this->get('/api/admin/me', ['Accept' => 'text/html']);
+
+        $reponse->assertUnauthorized();
+        $this->assertStringContainsString('application/json', (string) $reponse->headers->get('content-type'));
+        $this->assertIsString($reponse->json('message'));
+        $this->assertNotSame('', $reponse->json('message'));
+    }
 }
