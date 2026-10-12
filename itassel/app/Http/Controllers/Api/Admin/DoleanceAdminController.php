@@ -15,7 +15,6 @@ use App\Support\DoleanceFiltre;
 use App\Support\ExportPdf;
 use App\Support\GraphiqueCirculaire;
 use App\Support\Periode;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -336,7 +335,7 @@ class DoleanceAdminController extends Controller
             $synthese = ($filtres['graphiques'] ?? true) !== false;
             $parService = $utilisateur->estSuperAdmin() && empty($filtres['service']);
             $chiffres = $this->chiffresDoleances($doleances, $base, $doleances->count() > 2000);
-            $pdf = Pdf::loadView('exports.doleances', [
+            $pdf = ExportPdf::depuisVue('exports.doleances', [
                 'doleances' => $doleances,
                 'service' => $libelleService,
                 'date_debut' => $dateDebut,
@@ -354,9 +353,7 @@ class DoleanceAdminController extends Controller
                     : [],
                 'titre_document' => 'Export des doléances',
                 'reference' => 'DOL-'.$dateFin,
-            ])->setPaper('a4', 'landscape');
-
-            ExportPdf::preparer($pdf);
+            ]);
 
             return $pdf->download($nomFichier);
     }

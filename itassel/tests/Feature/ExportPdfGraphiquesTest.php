@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Journal;
 use App\Models\Service;
+use App\Support\ExportPdf;
 use App\Support\GraphiqueCirculaire;
+use Barryvdh\DomPDF\Facade\Pdf;
+use InvalidArgumentException;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +29,20 @@ class ExportPdfGraphiquesTest extends TestCase
     {
         Carbon::setTestNow();
         parent::tearDown();
+    }
+
+    public function test_dompdf_interdit_le_reseau_et_les_vues_externes(): void
+    {
+        $pdf = Pdf::loadHTML('<html><body>ok</body></html>');
+        ExportPdf::preparer($pdf);
+        $options = $pdf->getDomPDF()->getOptions();
+
+        $this->assertFalse($options->isRemoteEnabled());
+        $this->assertTrue($options->isPhpEnabled());
+        $this->assertSame([public_path(), storage_path('fonts')], $options->getChroot());
+
+        $this->expectException(InvalidArgumentException::class);
+        ExportPdf::depuisVue('welcome', []);
     }
 
     public function test_le_pdf_des_doleances_renvoie_un_pdf(): void

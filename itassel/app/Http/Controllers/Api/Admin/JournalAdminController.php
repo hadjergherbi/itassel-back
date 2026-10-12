@@ -12,7 +12,6 @@ use App\Services\JournalService;
 use App\Services\StatistiqueService;
 use App\Support\ExportPdf;
 use App\Support\GraphiqueCirculaire;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
@@ -350,7 +349,7 @@ class JournalAdminController extends Controller
         [$debut, $fin] = $this->bornesJournal($filtres, $lignes);
         $nomFichier = 'journal_'.$debut.'_'.$fin.'.pdf';
 
-        $pdf = Pdf::loadView('exports.journal', [
+        $pdf = ExportPdf::depuisVue('exports.journal', [
             'lignes' => $lignes,
             'total' => $total,
             'echecs_connexion' => $this->compterEchecsConnexion($lignes, $requete, $sql),
@@ -364,9 +363,7 @@ class JournalAdminController extends Controller
             'agent' => $request->user()->nomComplet(),
             'titre_document' => 'Journal des actions',
             'reference' => 'JRN-'.$fin,
-        ])->setPaper('a4', 'landscape');
-
-        ExportPdf::preparer($pdf);
+        ]);
         $dompdf = $pdf->getDomPDF();
         $dompdf->render();
 

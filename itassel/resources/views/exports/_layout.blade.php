@@ -187,6 +187,7 @@
 
   @yield('contenu')
 
+  {{-- Pagination : DomPDF n'expose pas counter(page). Script interne, jamais alimenté par du HTML utilisateur. --}}
   <script type="text/php">
     if (isset($pdf)) {
         $h = $pdf->get_height();

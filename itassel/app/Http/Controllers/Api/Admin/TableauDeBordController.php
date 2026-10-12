@@ -9,7 +9,6 @@ use App\Services\StatistiqueService;
 use App\Support\ExportPdf;
 use App\Support\GraphiqueCirculaire;
 use App\Support\Periode;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class TableauDeBordController extends Controller
@@ -67,7 +66,7 @@ class TableauDeBordController extends Controller
             'Statistiques du tableau de bord — période '.$code,
         );
 
-        $pdf = Pdf::loadView('exports.tableau-de-bord', [
+        $pdf = ExportPdf::depuisVue('exports.tableau-de-bord', [
             'orientation' => 'portrait',
             'titre_document' => 'Statistiques du tableau de bord',
             'reference' => 'TDB-'.$periode['date_fin'],
@@ -81,9 +80,7 @@ class TableauDeBordController extends Controller
             'issues' => $donnees['issues'],
             'issues_libelles' => Statut::query()->pluck('libelle', 'code'),
             'graphiques' => $graphiques,
-        ])->setPaper('a4', 'portrait');
-
-        ExportPdf::preparer($pdf);
+        ], 'a4', 'portrait');
 
         return $pdf->download('tableau-de-bord_'.$code.'_'.now()->format('Y-m-d').'.pdf');
     }
