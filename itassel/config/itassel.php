@@ -217,6 +217,8 @@ return [
         'max_mentions' => 5,
     ],
 
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
     'systeme' => [
         'service' => 'Tous les domaines',
         'nature' => 'Toutes natures',

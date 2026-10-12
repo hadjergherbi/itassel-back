@@ -80,6 +80,7 @@ Les emails (sauf le renvoi manuel) partent par un job `EnvoyerEmailNotification`
 - [ ] Surveiller `php artisan queue:failed` et relancer avec `php artisan queue:retry all`
 - [ ] Permissions : `storage/` et `bootstrap/cache` accessibles en écriture uniquement par l’utilisateur du pool PHP ; le reste du code en lecture
 - [ ] HTTPS terminé (reverse proxy ou serveur) pour que HSTS soit émis
+- [ ] `TRUSTED_PROXIES` = adresse IP du reverse proxy (liste séparée par des virgules). Laisser vide s'il n'y a pas de proxy. `*` seulement si ce proxy est le seul accès au serveur. Sans cela, l'IP journalisée, le throttling et HSTS sont faux.
 
 ## Secrets et messagerie
 

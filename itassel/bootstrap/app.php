@@ -3,6 +3,7 @@
 use App\Exceptions\ConflitMetier;
 use App\Exceptions\ErreurValidation;
 use App\Http\Middleware\EnsureCompteActif;
+use App\Support\ProxiesDeConfiance;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnTetesSecurite;
 use Illuminate\Auth\AuthenticationException;
@@ -23,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn () => null);
+        $proxies = env('TRUSTED_PROXIES');
+        $middleware->trustProxies(at: ProxiesDeConfiance::depuis(is_string($proxies) ? $proxies : null));
         $middleware->append(EnTetesSecurite::class);
         $middleware->alias([
             'compte.actif' => EnsureCompteActif::class,
