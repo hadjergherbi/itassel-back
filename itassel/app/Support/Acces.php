@@ -15,18 +15,18 @@ class Acces
     /**
      * Doléances qu'un utilisateur a le droit de voir :
      * - Super administrateur : toutes ;
-     * - administrateur de service : celles de son service, plus celles
-     *   dont la nature est « Toutes natures », plus celles rattachées
-     *   au domaine « Tous les domaines » (visibles de tous les services).
+     * - administrateur de service : celles de ses services (liste vide : aucune
+     *   doléance de service), plus celles dont la nature est « Toutes natures »,
+     *   plus celles rattachées au domaine « Tous les domaines ».
      */
     public static function doleancesVisibles(Utilisateur $utilisateur): Builder
     {
         $query = Doleance::query();
 
         if (! $utilisateur->estSuperAdmin()) {
-            $idService = $utilisateur->id_service ?? 0;
-            $query->where(function (Builder $q) use ($idService) {
-                $q->where('id_service', $idService)
+            $ids = $utilisateur->idsServices();
+            $query->where(function (Builder $q) use ($ids) {
+                $q->whereIn('id_service', $ids)
                     ->orWhereHas('nature', function (Builder $n) {
                         $n->whereRaw('LOWER(TRIM(libelle)) = ?', [mb_strtolower(Nature::TOUTES_NATURES)]);
                     })

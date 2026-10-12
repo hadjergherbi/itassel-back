@@ -80,8 +80,13 @@ class DoleanceFiltre
     {
         $super = $utilisateur->estSuperAdmin();
 
-        if (! empty($filtres['service']) && $super) {
-            $query->where('id_service', $filtres['service']);
+        if (! empty($filtres['service'])) {
+            $id = (int) $filtres['service'];
+            if ($super || $utilisateur->gereLeService($id)) {
+                $query->where('id_service', $id);
+            } else {
+                abort(403, 'Vous ne pouvez filtrer que les services que vous gérez.');
+            }
         }
 
         if (! empty($filtres['q'])) {
