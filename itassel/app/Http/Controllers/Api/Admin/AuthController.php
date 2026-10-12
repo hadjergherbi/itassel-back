@@ -16,6 +16,15 @@ use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
+    private static ?string $empreinteFactice = null;
+
+    /**
+     * Hash bcrypt au coût configuré, calculé une fois, pour les comptes absents.
+     */
+    private static function empreinteFactice(): string
+    {
+        return self::$empreinteFactice ??= Hash::make('itassel-empreinte-factice');
+    }
     /**
      * POST /api/admin/login
      * Renvoie un jeton (valable 8 heures) à envoyer ensuite dans l'en-tête
@@ -37,14 +46,20 @@ class AuthController extends Controller
 
         $utilisateur = CompteService::trouverParEmail($data['email'])?->load('service');
 
-        $motDePasseOk = false;
-        if ($utilisateur) {
-            try {
-                $motDePasseOk = Hash::check($data['mot_de_passe'], $utilisateur->mot_de_passe);
-            } catch (\RuntimeException $e) {
-                // Mot de passe enregistré en clair (ancien compte de test) : refusé.
-                $motDePasseOk = false;
-            }
+        // Toujours vérifier un hash bcrypt, même si le compte n'existe pas,
+        // pour que le temps de réponse ne révèle pas l'existence de l'email.
+        $empreinte = is_string($utilisateur?->mot_de_passe) && $utilisateur->mot_de_passe !== ''
+            ? $utilisateur->mot_de_passe
+            : self::empreinteFactice();
+
+        try {
+            $motDePasseOk = Hash::check($data['mot_de_passe'], $empreinte);
+        } catch (\RuntimeException) {
+            $motDePasseOk = Hash::check($data['mot_de_passe'], self::empreinteFactice());
+        }
+
+        if (! $utilisateur || ! is_string($utilisateur->mot_de_passe) || $utilisateur->mot_de_passe === '') {
+            $motDePasseOk = false;
         }
 
         $invitationEnAttente = $utilisateur && $utilisateur->mot_de_passe_defini_le === null;

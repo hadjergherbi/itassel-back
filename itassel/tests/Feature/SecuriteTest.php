@@ -85,6 +85,24 @@ class SecuriteTest extends TestCase
         $this->assertVerrouillage($bloque);
     }
 
+    public function test_un_email_inconnu_a_le_meme_message_qu_un_mot_de_passe_faux(): void
+    {
+        $admin = $this->superAdmin(['email' => 'connu@itassel.test']);
+
+        $faux = $this->postJson('/api/admin/login', [
+            'email' => $admin->email,
+            'mot_de_passe' => 'pas-le-bon',
+        ]);
+        $inconnu = $this->postJson('/api/admin/login', [
+            'email' => 'personne@itassel.test',
+            'mot_de_passe' => 'pas-le-bon',
+        ]);
+
+        $faux->assertUnprocessable();
+        $inconnu->assertUnprocessable();
+        $this->assertSame($faux->json('message'), $inconnu->json('message'));
+    }
+
     public function test_apres_quinze_minutes_la_connexion_est_de_nouveau_possible(): void
     {
         $this->superAdmin(['email' => 'attendre@itassel.test']);
