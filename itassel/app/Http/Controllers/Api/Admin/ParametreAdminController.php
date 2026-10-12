@@ -11,6 +11,7 @@ use App\Models\Qualite;
 use App\Models\Statut;
 use App\Services\JournalService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ParametreAdminController extends Controller
@@ -240,7 +241,7 @@ class ParametreAdminController extends Controller
     {
         $data = $request->validate([
             'libelle' => ['sometimes', 'string', 'max:80'],
-            'couleur' => ['sometimes', 'string', 'max:30'],
+            'couleur' => ['sometimes', 'string', Rule::in(['bleu', 'orange', 'violet', 'vert', 'gris', 'rouge', 'turquoise'])],
             'message_citoyen' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -267,6 +268,7 @@ class ParametreAdminController extends Controller
             '*.canal_app' => ['required', 'boolean'],
         ]);
 
+        $preparées = [];
         foreach ($data as $ligne) {
             $parametre = ParametreNotification::where('evenement', $ligne['evenement'])
                 ->where('destinataire', $ligne['destinataire'])
@@ -291,13 +293,19 @@ class ParametreAdminController extends Controller
                 ], 422);
             }
 
-            if ($parametre->modifiable) {
-                $parametre->update([
-                    'canal_email' => $ligne['canal_email'],
-                    'canal_app' => $canalApp,
-                ]);
-            }
+            $preparées[] = [$parametre, $ligne['canal_email'], $canalApp];
         }
+
+        DB::transaction(function () use ($preparées) {
+            foreach ($preparées as [$parametre, $canalEmail, $canalApp]) {
+                if ($parametre->modifiable) {
+                    $parametre->update([
+                        'canal_email' => $canalEmail,
+                        'canal_app' => $canalApp,
+                    ]);
+                }
+            }
+        });
 
         JournalService::action($request, $request->user(), 'modification_notifications', 'Matrice des notifications');
 
