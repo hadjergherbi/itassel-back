@@ -37,6 +37,9 @@ class StatistiqueService
     public static function vueGlobale(Utilisateur $utilisateur): array
     {
         $visibles = Acces::doleancesVisibles($utilisateur);
+        if (! $utilisateur->estSuperAdmin()) {
+            $visibles->whereIn('id_service', $utilisateur->idsServices());
+        }
         $statuts = Statut::all()->keyBy('code');
         $totauxParStatut = (clone $visibles)
             ->selectRaw('id_statut, COUNT(*) AS total')
@@ -53,7 +56,14 @@ class StatistiqueService
         $nouvelles = $parCode[Statut::NOUVELLE] ?? 0;
         $resolues = $parCode[Statut::RESOLUE] ?? 0;
 
-        $parService = Service::orderBy('nom_service')->get()->map(function (Service $service) use ($utilisateur) {
+        $parService = Service::query()
+            ->when(
+                ! $utilisateur->estSuperAdmin(),
+                fn ($q) => $q->whereIn('id_service', $utilisateur->idsServices()),
+            )
+            ->orderBy('nom_service')
+            ->get()
+            ->map(function (Service $service) use ($utilisateur) {
             $base = Acces::doleancesVisibles($utilisateur)->where('id_service', $service->id_service);
             $parStatut = (clone $base)
                 ->selectRaw('id_statut, COUNT(*) AS total')
@@ -97,7 +107,7 @@ class StatistiqueService
             'total' => $total,
             'depuis' => $depuis ? substr((string) $depuis, 0, 10) : now()->toDateString(),
             'reaffectations_en_attente' => Reaffectation::where('etat', 'en_attente')->count(),
-            'services' => Service::count(),
+            'services' => $parService->count(),
             'utilisateurs_actifs' => Utilisateur::where('actif', true)->whereNotNull('mot_de_passe_defini_le')->count(),
             'comptes_desactives' => Utilisateur::where('actif', false)->count(),
             'invitations_en_attente' => Utilisateur::where('actif', true)->whereNull('mot_de_passe_defini_le')->count(),
