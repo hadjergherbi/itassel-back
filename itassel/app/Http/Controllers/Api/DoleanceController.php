@@ -61,7 +61,7 @@ class DoleanceController extends Controller
             'prenom' => ['required', 'string', 'max:60', 'regex:'.$nomPersonne],
             'email' => ['required', 'email', 'max:120'],
             'telephone' => ['required', 'string', 'max:20', 'regex:/^(\\+213|0)([5-7]\\d{8}|[2-4]\\d{7,8})$/'],
-            'wilaya' => ['required', 'string', 'max:40'],
+            'wilaya' => ['required', 'string', Rule::in(config('itassel.wilayas', []))],
             'objet' => ['required', 'string', 'max:200'],
             'description' => ['required', 'string', 'max:5000'],
             'id_service' => [

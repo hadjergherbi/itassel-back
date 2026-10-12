@@ -285,17 +285,9 @@ class DoleanceAdminController extends Controller
         }
 
         $base = clone $query;
-        $doleances = $query
-            ->with([
-                'statut:id_statut,code,libelle',
-                'service:id_service,nom_service',
-                'nature:id_nature,libelle',
-                'responsable:id_utilisateur,nom,prenom',
-            ])
-            ->orderByDesc('date_depot')
-            ->get();
+        $totalExport = (clone $query)->count();
 
-        if ($doleances->isEmpty()) {
+        if ($totalExport === 0) {
             return response()->json(['message' => 'Aucune doléance ne correspond à ces critères.'], 422);
         }
 
@@ -303,6 +295,25 @@ class DoleanceAdminController extends Controller
         $slugService = $this->slugServiceExport($utilisateur, $filtres);
         $format = $filtres['format'] ?? 'csv';
         $nomFichier = 'doleances_'.$slugService.'_'.$dateDebut.'_'.$dateFin.'.'.$format;
+
+        if ($format === 'pdf' && $totalExport > 2000) {
+            return response()->json([
+                'message' => 'L\'export PDF est limité à 2 000 doléances. Affinez les filtres ou choisissez le format CSV.',
+            ], 422);
+        }
+
+        $query->with([
+            'statut:id_statut,code,libelle',
+            'service:id_service,nom_service',
+            'nature:id_nature,libelle,famille',
+            'responsable:id_utilisateur,nom,prenom',
+        ])->orderByDesc('date_depot');
+
+        if ($format !== 'pdf') {
+            return $this->reponseCsv($request, $utilisateur, $query, $filtres, $nomFichier);
+        }
+
+        $doleances = $query->get();
 
         $detail = 'Liste des doléances';
         if (! $utilisateur->estSuperAdmin() && $utilisateur->service) {
@@ -314,8 +325,7 @@ class DoleanceAdminController extends Controller
             }
         }
 
-        if ($format === 'pdf') {
-            JournalService::action($request, $utilisateur, 'export_pdf', $detail);
+        JournalService::action($request, $utilisateur, 'export_pdf', $detail);
 
             $natures = $doleances->pluck('nature.libelle')->filter()->unique()->values()->all();
             $libelleService = ! $utilisateur->estSuperAdmin() && $utilisateur->service
@@ -349,8 +359,10 @@ class DoleanceAdminController extends Controller
             ExportPdf::preparer($pdf);
 
             return $pdf->download($nomFichier);
-        }
+    }
 
+    private function reponseCsv(Request $request, $utilisateur, $query, array $filtres, string $nomFichier)
+    {
         $chemin = tmpfile();
         fwrite($chemin, "\xEF\xBB\xBF");
         fputcsv($chemin, [
@@ -358,24 +370,31 @@ class DoleanceAdminController extends Controller
             'Wilaya', 'Date de dépôt', 'Statut', 'Responsable',
         ], ';');
 
-        foreach ($doleances as $doleance) {
-            fputcsv($chemin, [
-                $doleance->reference,
-                $doleance->nom,
-                $doleance->prenom,
-                $doleance->nature?->libelle ?? '',
-                $doleance->nature?->libelle ?? '',
-                $doleance->service?->nom_service ?? '',
-                $doleance->wilaya,
-                optional($doleance->date_depot)->format('d/m/Y'),
-                $doleance->statut?->libelle ?? '',
-                trim(($doleance->responsable?->prenom ?? '').' '.($doleance->responsable?->nom ?? '')),
-            ], ';');
-        }
+        $query->chunk(200, function ($lot) use ($chemin) {
+            foreach ($lot as $doleance) {
+                fputcsv($chemin, [
+                    $this->celluleCsv($doleance->reference),
+                    $this->celluleCsv($doleance->nom),
+                    $this->celluleCsv($doleance->prenom),
+                    $this->celluleCsv($this->libelleFamille($doleance->nature?->famille)),
+                    $this->celluleCsv($doleance->nature?->libelle ?? ''),
+                    $this->celluleCsv($doleance->service?->nom_service ?? ''),
+                    $this->celluleCsv($doleance->wilaya),
+                    $this->celluleCsv(optional($doleance->date_depot)->format('d/m/Y')),
+                    $this->celluleCsv($doleance->statut?->libelle ?? ''),
+                    $this->celluleCsv(trim(($doleance->responsable?->prenom ?? '').' '.($doleance->responsable?->nom ?? ''))),
+                ], ';');
+            }
+        });
 
         rewind($chemin);
         $contenu = stream_get_contents($chemin);
         fclose($chemin);
+
+        $detail = 'Liste des doléances';
+        if (! $utilisateur->estSuperAdmin() && $utilisateur->service) {
+            $detail .= ' — '.$utilisateur->service->nom_service;
+        }
 
         JournalService::action($request, $utilisateur, 'export_csv', $detail);
 
@@ -383,6 +402,25 @@ class DoleanceAdminController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.$nomFichier.'"',
         ]);
+    }
+
+    private function libelleFamille(?string $famille): string
+    {
+        return match ($famille) {
+            'reclamation' => 'Réclamation',
+            'demande' => 'Demande',
+            default => '',
+        };
+    }
+
+    private function celluleCsv(mixed $valeur): string
+    {
+        $texte = (string) ($valeur ?? '');
+        if ($texte !== '' && preg_match('/^[=+\-@\t\r]/u', $texte) === 1) {
+            return "'".$texte;
+        }
+
+        return $texte;
     }
 
     /**

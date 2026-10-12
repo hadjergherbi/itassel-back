@@ -132,4 +132,33 @@ class ExportDoleancesTest extends TestCase
             ->assertStatus(422)
             ->assertJson(['message' => 'Aucune doléance ne correspond à ces critères.']);
     }
+
+    public function test_le_csv_neutralise_une_formule_et_distingue_la_categorie(): void
+    {
+        $service = $this->serviceUsuel();
+        $suggestion = Nature::where('libelle', 'Suggestion')->firstOrFail();
+        $this->doleance([
+            'id_service' => $service->id_service,
+            'id_nature' => $suggestion->id_nature,
+            'nom' => '=1+1',
+            'prenom' => '+Prenom',
+            'reference' => 'ITS-2026-777001',
+        ]);
+
+        $this->connecter($this->superAdmin());
+        $csv = $this->get('/api/admin/doleances/export?date_debut=2026-01-01&date_fin=2026-09-24')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString("'=1+1", $csv);
+        $this->assertStringContainsString("'+Prenom", $csv);
+        $this->assertStringContainsString('Demande;Suggestion', $csv);
+    }
+
+    public function test_une_wilaya_hors_liste_est_refusee(): void
+    {
+        $this->postJson('/api/doleances', $this->champsDepotPublic([
+            'wilaya' => 'Paris',
+        ]))->assertStatus(422)->assertJsonValidationErrors('wilaya');
+    }
 }
