@@ -79,12 +79,13 @@ class NotificationService
                 ]);
             }
 
-            Log::error("Échec de mise en file de l'email « {$type} » pour {$doleance->reference}", [
+            Log::warning('Échec de mise en file d\'un email', [
+                'type' => $type,
                 'exception' => $e::class,
             ]);
             $messageErreur = 'mise en file impossible';
 
-            return true;
+            return false;
         }
 
         return true;

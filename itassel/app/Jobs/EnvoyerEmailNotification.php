@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\NotificationItassel;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Mail\Mailable;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
-class EnvoyerEmailNotification implements ShouldQueue
+class EnvoyerEmailNotification implements ShouldBeEncrypted, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -47,7 +48,6 @@ class EnvoyerEmailNotification implements ShouldQueue
         ]);
 
         Log::error('Échec d\'envoi email', [
-            'reference' => $this->reference,
             'notification' => $this->idNotification,
             'exception' => $exception::class,
         ]);
